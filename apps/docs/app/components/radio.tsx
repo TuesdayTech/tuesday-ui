@@ -1,5 +1,5 @@
+import { PreviewFrame } from "../../components/PreviewFrame";
 import React, { useState } from "react";
-import { ScrollView } from "react-native";
 import { Link } from "expo-router";
 import { Text, Radio, Button, VStack } from "@tuesday-ui/ui";
 
@@ -7,7 +7,7 @@ export default function RadioPage() {
   const [selected, setSelected] = useState("a");
 
   return (
-    <ScrollView className="flex-1 bg-background">
+    <PreviewFrame>
       <VStack className="p-6 max-w-2xl mx-auto gap-8">
         <Link href="/" asChild>
           <Button variant="ghost" size="sm">← Back</Button>
@@ -21,6 +21,6 @@ export default function RadioPage() {
           <Radio label="Disabled" disabled />
         </VStack>
       </VStack>
-    </ScrollView>
+    </PreviewFrame>
   );
 }

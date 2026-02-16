@@ -8,6 +8,9 @@
       "bundler": "metro",
       "output": "static"
     },
+    "experiments": {
+      "baseUrl": "/tuesday-ui"
+    },
     "plugins": [
       "expo-router"
     ]

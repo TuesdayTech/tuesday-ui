@@ -29,6 +29,9 @@ const screens = [
   { name: "Auth Screen", href: "/screens/auth" },
   { name: "List Screen", href: "/screens/list" },
   { name: "Detail Screen", href: "/screens/detail" },
+  { name: "Settings Screen", href: "/screens/settings" },
+  { name: "Profile Screen", href: "/screens/profile" },
+  { name: "Dashboard Screen", href: "/screens/dashboard" },
 ];
 
 export default function Index() {
