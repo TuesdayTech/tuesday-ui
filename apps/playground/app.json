@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "tuesday-ui-playground",
+    "slug": "tuesday-ui-playground",
+    "version": "1.0.0",
+    "scheme": "tuesday-ui-playground",
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

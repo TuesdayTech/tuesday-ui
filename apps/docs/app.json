@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "tuesday-ui-docs",
+    "slug": "tuesday-ui-docs",
+    "version": "1.0.0",
+    "scheme": "tuesday-ui-docs",
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
