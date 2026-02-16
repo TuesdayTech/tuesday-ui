@@ -1,90 +1,137 @@
-import React from "react";
-import { ScrollView } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, View } from "react-native";
 import { Link } from "expo-router";
 import {
-  Text, Button, VStack, HStack, Box, Card, CardBody, Avatar, Badge, Section, Divider,
+  Text, Button, VStack, HStack, Box, Avatar, Badge, Divider, Card, CardBody,
 } from "@tuesday-ui/ui";
 
-const stats = [
-  { label: "Listings", value: "24" },
-  { label: "Sold", value: "156" },
-  { label: "Reviews", value: "4.9 ★" },
-];
+const profile = {
+  name: "Rachel Green",
+  office: "Compass · Minneapolis",
+  bio: "Top-producing agent in the Twin Cities metro. Specializing in luxury homes, first-time buyers, and investment properties. 15+ years of experience helping families find their dream homes.",
+  phone: "(612) 555-0147",
+  email: "rachel@compass.com",
+  links: ["instagram.com/rachelgreenhomes", "rachelgreen.com"],
+  verified: true,
+  isFollowing: false,
+  volume: "$48M",
+  startYear: 2009,
+  totalSides: 312,
+  avgSale: "$425K",
+};
 
-const activeListings = [
-  { address: "89 Pacific Heights Blvd, SF", price: "$725,000", beds: 4 },
-  { address: "2200 Broadway St, SF", price: "$1,100,000", beds: 5 },
-  { address: "445 Hayes Valley Ave, SF", price: "$580,000", beds: 2 },
-];
-
-const reviews = [
-  { author: "Mark & Julie T.", text: "Sarah helped us find our dream home in record time. Her knowledge of the SF market is unmatched!" },
-  { author: "David L.", text: "Professional, responsive, and a great negotiator. Got us $30k under asking price." },
-  { author: "Anna K.", text: "We've worked with Sarah on three transactions now. She's the best in the business." },
+const listings = [
+  { id: 1, photo: "#3B82F6", price: "$749,900", address: "2847 Woodland Ave", beds: 4, baths: 3, sqft: "2,631" },
+  { id: 2, photo: "#8B5CF6", price: "$1,250,000", address: "1520 Summit Ave", beds: 5, baths: 4, sqft: "2,968" },
+  { id: 3, photo: "#10B981", price: "$425,000", address: "4215 Lyndale Ave S #302", beds: 2, baths: 2, sqft: "1,362" },
+  { id: 4, photo: "#F59E0B", price: "$899,000", address: "5601 Drew Ave S", beds: 4, baths: 3, sqft: "3,016" },
+  { id: 5, photo: "#EF4444", price: "$575,000", address: "3201 Dupont Ave S", beds: 3, baths: 2, sqft: "1,890" },
+  { id: 6, photo: "#6366F1", price: "$1,100,000", address: "2200 Lake of the Isles", beds: 5, baths: 4, sqft: "3,420" },
 ];
 
 export default function AgentProfile() {
+  const [following, setFollowing] = useState(false);
+
   return (
-    <ScrollView className="flex-1 bg-background">
-      <VStack className="p-6 max-w-xl mx-auto gap-6">
-        <Link href="/showcase" asChild>
-          <Button variant="ghost" size="sm">← Back to Showcase</Button>
-        </Link>
-
-        <VStack className="items-center gap-3">
-          <Avatar name="Sarah Mitchell" size="xl" />
-          <Text className="text-2xl font-bold text-foreground">Sarah Mitchell</Text>
-          <Badge variant="warning">Top Producer</Badge>
-          <Text className="text-sm text-foreground-muted">Pacific Realty Group · San Francisco</Text>
-        </VStack>
-
-        <HStack className="gap-3 justify-center">
-          {stats.map((s) => (
-            <Card key={s.label}>
-              <CardBody>
-                <VStack className="items-center gap-1 px-4">
-                  <Text className="text-xl font-bold text-foreground">{s.value}</Text>
-                  <Text className="text-xs text-foreground-muted">{s.label}</Text>
-                </VStack>
-              </CardBody>
-            </Card>
-          ))}
+    <ScrollView className="flex-1" style={{ backgroundColor: "#0A0A0A" }} showsVerticalScrollIndicator={false}>
+      <VStack className="px-3 py-4 gap-3">
+        {/* Main info: avatar + stats */}
+        <HStack className="items-center gap-0">
+          <Avatar name={profile.name} size="xl" />
+          <View style={{ flex: 1 }} />
+          <VStack className="items-center">
+            <Text className="text-white font-semibold">{profile.volume}</Text>
+            <Text className="text-neutral-400 text-xs">since {profile.startYear}</Text>
+          </VStack>
+          <View style={{ width: 20 }} />
+          <VStack className="items-center">
+            <Text className="text-white font-semibold">{profile.totalSides}</Text>
+            <Text className="text-neutral-400 text-xs">total sides</Text>
+          </VStack>
+          <View style={{ width: 20 }} />
+          <VStack className="items-center">
+            <Text className="text-white font-semibold">{profile.avgSale}</Text>
+            <Text className="text-neutral-400 text-xs">avg sale</Text>
+          </VStack>
+          <View style={{ width: 4 }} />
         </HStack>
 
-        <Button variant="primary" size="lg">Follow</Button>
+        {/* Name */}
+        <VStack className="gap-1">
+          <HStack className="gap-1 items-center">
+            <Text className="text-white font-semibold text-base">{profile.name}</Text>
+            {profile.verified && <Text className="text-blue-400 text-sm">✓</Text>}
+          </HStack>
+          <Text className="text-neutral-400 text-xs">{profile.office}</Text>
+        </VStack>
 
-        <Divider />
+        {/* Bio */}
+        <Text className="text-white text-sm">{profile.bio}</Text>
 
-        <Section title="Active Listings">
-          <VStack className="gap-3">
-            {activeListings.map((l) => (
-              <Card key={l.address}>
-                <CardBody>
-                  <HStack className="justify-between items-center">
-                    <VStack className="gap-1 flex-1">
-                      <Text className="text-base font-semibold text-foreground">{l.price}</Text>
-                      <Text className="text-sm text-foreground-muted">{l.address}</Text>
-                    </VStack>
-                    <Badge>{l.beds} bed</Badge>
-                  </HStack>
-                </CardBody>
-              </Card>
-            ))}
-          </VStack>
-        </Section>
+        {/* Contact links */}
+        <VStack className="gap-1">
+          <HStack className="gap-4">
+            <Text className="text-white font-medium text-sm underline">{profile.phone}</Text>
+            <Text className="text-white font-medium text-sm underline">{profile.email}</Text>
+          </HStack>
+          <HStack className="gap-1 items-center">
+            <Text className="text-blue-400 font-semibold text-sm">🔗 {profile.links[0]}</Text>
+            <Text className="text-blue-400 font-semibold text-sm"> and 1 more</Text>
+          </HStack>
+        </VStack>
 
-        <Divider />
+        {/* Buttons */}
+        <HStack className="gap-2">
+          <Button
+            variant={following ? "outline" : "primary"}
+            size="sm"
+            className="flex-1"
+            onPress={() => setFollowing(!following)}
+          >
+            {following ? "Following" : "Follow"}
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1">Edit Profile</Button>
+          <Button variant="outline" size="sm" className="flex-1">Share Profile</Button>
+        </HStack>
 
-        <Section title="Reviews">
-          <VStack className="gap-4">
-            {reviews.map((r) => (
-              <VStack key={r.author} className="gap-1">
-                <Text className="text-sm text-foreground italic">"{r.text}"</Text>
-                <Text className="text-xs text-foreground-muted">— {r.author}</Text>
+        {/* Listings grid header */}
+        <HStack className="justify-between items-center pt-2">
+          <HStack className="gap-4">
+            <Text className="text-white font-semibold text-sm">Grid</Text>
+            <Text className="text-neutral-500 text-sm">Map</Text>
+          </HStack>
+          <HStack className="gap-2">
+            <Text className="text-neutral-400 text-xs">Sort: Newest</Text>
+          </HStack>
+        </HStack>
+
+        {/* Listings grid (2 columns) */}
+        <Box className="flex-row flex-wrap gap-2">
+          {listings.map((l) => (
+            <Box key={l.id} style={{ width: "48.5%" }}>
+              <VStack className="gap-0">
+                <Box
+                  style={{ height: 140, backgroundColor: l.photo }}
+                  className="rounded-t-lg items-center justify-center"
+                >
+                  <Text className="text-white/20 text-3xl">🏠</Text>
+                </Box>
+                <VStack className="bg-neutral-900 rounded-b-lg p-2 gap-0.5">
+                  <Text className="text-white font-bold text-sm">{l.price}</Text>
+                  <Text className="text-neutral-400 text-xs" numberOfLines={1}>{l.address}</Text>
+                  <Text className="text-neutral-500 text-xs">{l.beds}bd · {l.baths}ba · {l.sqft}sf</Text>
+                </VStack>
               </VStack>
-            ))}
-          </VStack>
-        </Section>
+            </Box>
+          ))}
+        </Box>
+
+        {/* Back */}
+        <View style={{ marginTop: 16 }}>
+          <Link href="/showcase" asChild>
+            <Button variant="ghost" size="sm">← Back to Showcase</Button>
+          </Link>
+        </View>
       </VStack>
     </ScrollView>
   );
