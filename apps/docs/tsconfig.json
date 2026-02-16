@@ -3,11 +3,23 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@tuesday-ui/ui": ["../../packages/ui/src"],
-      "@tuesday-ui/tokens": ["../../packages/tokens/src"],
-      "@tuesday-ui/hooks": ["../../packages/hooks/src"],
-      "@tuesday-ui/utils": ["../../packages/utils/src"]
+      "@tuesday-ui/ui": [
+        "../../packages/ui/src"
+      ],
+      "@tuesday-ui/tokens": [
+        "../../packages/tokens/src"
+      ],
+      "@tuesday-ui/hooks": [
+        "../../packages/hooks/src"
+      ],
+      "@tuesday-ui/utils": [
+        "../../packages/utils/src"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "nativewind-env.d.ts"
+  ]
 }

@@ -6,5 +6,8 @@ module.exports = {
     "../../packages/ui/src/**/*.{ts,tsx}",
   ],
   // playground-specific config inherits from root preset
-  presets: [require("../../packages/tokens/dist/tailwind-preset").tuesdayPreset],
+  presets: [
+    require("nativewind/preset"),
+    require("../../packages/tokens/dist/tailwind-preset").tuesdayPreset,
+  ],
 };
