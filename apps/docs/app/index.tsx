@@ -61,6 +61,16 @@ export default function Index() {
         </VStack>
 
         <VStack className="gap-4">
+          <Text className="text-xl font-semibold text-foreground">Real Estate Showcase</Text>
+          <Text className="text-sm text-foreground-muted">
+            Industry-specific screens built from tuesday-ui components
+          </Text>
+          <Link href="/showcase" asChild>
+            <Button variant="primary" size="lg">Explore Showcase →</Button>
+          </Link>
+        </VStack>
+
+        <VStack className="gap-4">
           <Text className="text-xl font-semibold text-foreground">Screen Templates</Text>
           <Box className="flex-row flex-wrap gap-2">
             {screens.map((s) => (
