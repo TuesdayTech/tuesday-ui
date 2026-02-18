@@ -4,6 +4,7 @@ import { Link } from "expo-router";
 import { Text, Button, VStack, HStack, Box } from "@tuesday-ui/ui";
 
 const showcaseScreens = [
+  { name: "Design Decisions", href: "/showcase/design-decisions", desc: "15 open questions for the design system — tap to decide", icon: "◆", highlight: true },
   { name: "Feed", href: "/showcase/property-feed", desc: "Full-screen paging listing cards with photos, price, details & actions", icon: "🏠" },
   { name: "Listing Detail", href: "/showcase/listing-detail", desc: "Map, photo gallery, price, specs, remarks, agent & share", icon: "📋" },
   { name: "Search", href: "/showcase/property-search", desc: "Map-based search with location filters, pills & results", icon: "🔍" },
@@ -31,12 +32,12 @@ export default function ShowcaseIndex() {
         <VStack className="gap-3">
           {showcaseScreens.map((s) => (
             <Link key={s.name} href={s.href as any} asChild>
-              <Button variant="outline" size="lg">
+              <Button variant={(s as any).highlight ? "primary" : "outline"} size="lg">
                 <HStack className="flex-1 gap-3 items-center">
                   <Text className="text-2xl">{s.icon}</Text>
                   <VStack className="flex-1 gap-0.5">
                     <Text className="text-white font-semibold text-base">{s.name}</Text>
-                    <Text className="text-neutral-400 text-sm">{s.desc}</Text>
+                    <Text className={`text-sm ${(s as any).highlight ? "text-white/70" : "text-neutral-400"}`}>{s.desc}</Text>
                   </VStack>
                 </HStack>
               </Button>
