@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { ScrollView, Pressable } from "react-native";
+import React, { useState, useCallback } from "react";
+import { ScrollView, Pressable, TextInput, Platform } from "react-native";
 import { Link } from "expo-router";
 import { Text, VStack, HStack, Box, Button, Divider } from "@tuesday-ui/ui";
 
@@ -92,22 +92,12 @@ const decisions: Decision[] = [
     category: "Colors",
     question: "Brand accent color?",
     context:
-      "Current accent is #0A84FF — literally iOS system blue. This works but isn't distinctive. Tuesday could have its own color.",
+      "Tuesday needs its own accent color — not iOS blue, not Vercel blue. This color will be used for primary buttons, links, active states, and brand identity across the entire app. What color says 'Tuesday'?",
     options: [
       {
-        label: "iOS Blue #0A84FF",
-        desc: "Native feel, familiar, no branding friction.",
-        preview: "███████",
-      },
-      {
-        label: "Custom brand color",
-        desc: "Define a unique Tuesday accent. Differentiate from stock iOS.",
-        preview: "███████  (TBD)",
-      },
-      {
-        label: "Vercel-style #0070F3",
-        desc: "Slightly different blue. Matches Geist design language.",
-        preview: "███████",
+        label: "Open discussion",
+        desc: "Bring color ideas to the call. Consider mood, real estate context, and brand personality. No pre-selected answer.",
+        preview: "🎨  What color is Tuesday?",
       },
     ],
   },
@@ -188,6 +178,10 @@ const decisions: Decision[] = [
         desc: "SF Symbols on iOS, Material on Android. Native feel, inconsistent cross-plat.",
       },
       {
+        label: "Geist Icons",
+        desc: "Vercel's icon set. Minimal, 2px stroke, pairs with Geist Sans. Consistent design language.",
+      },
+      {
         label: "Lucide",
         desc: "Open source, 1400+ icons, consistent everywhere. Popular in web.",
       },
@@ -202,53 +196,9 @@ const decisions: Decision[] = [
     ],
   },
 
-  /* ── Emoji ──────────────────────────────────────────────────────── */
-  {
-    id: 9,
-    category: "Emoji",
-    question: "Keep emoji as listing status indicators?",
-    context:
-      "The SwiftUI app uses emoji for listing status: 🏡 Active, 🚀 New, 💰 Price Change, ☠️ Expired, ⏳ Pending, 🔑 Closed. It's distinctive but informal.",
-    options: [
-      {
-        label: "Keep emoji",
-        desc: "Fun, scannable, already works. Users recognize them instantly.",
-      },
-      {
-        label: "Colored dots + labels",
-        desc: "More professional. Green dot = Active, Amber = Pending, etc.",
-      },
-      {
-        label: "Icons",
-        desc: "Custom or library icons for each status. Polished but more work.",
-      },
-      {
-        label: "Emoji + fallback",
-        desc: "Emoji primary, icon fallback for formal contexts (reports, PDFs).",
-      },
-    ],
-  },
-  {
-    id: 10,
-    category: "Emoji",
-    question: "Emoji in toasts & notifications?",
-    context:
-      "Current: ✅ Success, 🛑 Error, ℹ️ Info, 🔄 Progress. Quick to implement but may clash with a polished UI.",
-    options: [
-      {
-        label: "Emoji",
-        desc: "Keep it. Fast, fun, recognizable.",
-      },
-      {
-        label: "Icon components",
-        desc: "Checkmark, X, info circle. More cohesive with the design system.",
-      },
-    ],
-  },
-
   /* ── Components ─────────────────────────────────────────────────── */
   {
-    id: 11,
+    id: 9,
     category: "Components",
     question: "Card style — shadows or borders?",
     context:
@@ -269,7 +219,7 @@ const decisions: Decision[] = [
     ],
   },
   {
-    id: 12,
+    id: 10,
     category: "Components",
     question: "Loading state pattern?",
     context:
@@ -290,7 +240,7 @@ const decisions: Decision[] = [
     ],
   },
   {
-    id: 13,
+    id: 11,
     category: "Components",
     question: "Border radius philosophy?",
     context:
@@ -313,7 +263,7 @@ const decisions: Decision[] = [
 
   /* ── Architecture ───────────────────────────────────────────────── */
   {
-    id: 14,
+    id: 12,
     category: "Architecture",
     question: "Navigation — native tabs or custom tab bar?",
     context:
@@ -334,7 +284,7 @@ const decisions: Decision[] = [
     ],
   },
   {
-    id: 15,
+    id: 13,
     category: "Architecture",
     question: "Animation approach?",
     context:
@@ -360,7 +310,6 @@ const categoryColors: Record<string, string> = {
   Typography: "#A78BFA",
   Colors: "#F472B6",
   Icons: "#FBBF24",
-  Emoji: "#34D399",
   Components: "#60A5FA",
   Architecture: "#F97316",
 };
@@ -369,7 +318,6 @@ const categoryEmoji: Record<string, string> = {
   Typography: "Aa",
   Colors: "◆",
   Icons: "⬡",
-  Emoji: "☻",
   Components: "□",
   Architecture: "⌂",
 };
@@ -464,16 +412,224 @@ function OptionCard({
   );
 }
 
+function ColorPicker({
+  color,
+  onColorChange,
+}: {
+  color: string;
+  onColorChange: (hex: string) => void;
+}) {
+  const [hexInput, setHexInput] = useState(color);
+
+  const handleHexSubmit = useCallback(() => {
+    const cleaned = hexInput.replace(/[^0-9a-fA-F#]/g, "");
+    const hex = cleaned.startsWith("#") ? cleaned : `#${cleaned}`;
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+      onColorChange(hex);
+    }
+  }, [hexInput, onColorChange]);
+
+  const presets = [
+    { hex: "#FF6B35", name: "Warm Orange" },
+    { hex: "#E84855", name: "Coral Red" },
+    { hex: "#7B2D8E", name: "Royal Purple" },
+    { hex: "#2EC4B6", name: "Teal" },
+    { hex: "#20BF55", name: "Fresh Green" },
+    { hex: "#F5CB5C", name: "Golden" },
+    { hex: "#3A86FF", name: "Bright Blue" },
+    { hex: "#FF006E", name: "Hot Pink" },
+  ];
+
+  return (
+    <VStack className="gap-4">
+      {/* Color preview + native picker */}
+      <HStack className="gap-3 items-center">
+        <Pressable
+          onPress={() => {
+            if (Platform.OS === "web") {
+              const input = document.createElement("input");
+              input.type = "color";
+              input.value = color;
+              input.addEventListener("input", (e) => {
+                const val = (e.target as HTMLInputElement).value;
+                onColorChange(val);
+                setHexInput(val);
+              });
+              input.click();
+            }
+          }}
+        >
+          <Box
+            className="w-14 h-14 rounded-2xl items-center justify-center"
+            style={{
+              backgroundColor: color,
+              borderWidth: 2,
+              borderColor: "#FFFFFF20",
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>🎨</Text>
+          </Box>
+        </Pressable>
+
+        <VStack className="flex-1 gap-1">
+          <Text style={{ color: "#FFFFFF90", fontSize: 12, fontWeight: "600" }}>
+            HEX VALUE
+          </Text>
+          <HStack className="gap-2 items-center">
+            <Box
+              className="flex-1 rounded-lg px-3 py-2"
+              style={{
+                backgroundColor: "#FFFFFF08",
+                borderWidth: 1,
+                borderColor: "#FFFFFF15",
+              }}
+            >
+              <TextInput
+                value={hexInput}
+                onChangeText={setHexInput}
+                onSubmitEditing={handleHexSubmit}
+                placeholder="#000000"
+                placeholderTextColor="#FFFFFF30"
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 16,
+                  fontFamily: "monospace",
+                  fontWeight: "600",
+                  padding: 0,
+                }}
+                maxLength={7}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </Box>
+            <Pressable onPress={handleHexSubmit}>
+              <Box
+                className="rounded-lg px-3 items-center justify-center"
+                style={{
+                  height: 40,
+                  backgroundColor: "#FFFFFF15",
+                  borderWidth: 1,
+                  borderColor: "#FFFFFF20",
+                }}
+              >
+                <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "700" }}>
+                  Apply
+                </Text>
+              </Box>
+            </Pressable>
+            <Box
+              className="w-10 h-10 rounded-lg"
+              style={{
+                backgroundColor: color,
+                borderWidth: 1,
+                borderColor: "#FFFFFF15",
+              }}
+            />
+          </HStack>
+        </VStack>
+      </HStack>
+
+      {/* Preset swatches */}
+      <VStack className="gap-2">
+        <Text style={{ color: "#FFFFFF50", fontSize: 12, fontWeight: "600" }}>
+          SUGGESTIONS
+        </Text>
+        <HStack className="flex-wrap gap-2">
+          {presets.map((p) => (
+            <Pressable
+              key={p.hex}
+              onPress={() => {
+                onColorChange(p.hex);
+                setHexInput(p.hex);
+              }}
+            >
+              <VStack className="items-center gap-1">
+                <Box
+                  className="w-10 h-10 rounded-xl"
+                  style={{
+                    backgroundColor: p.hex,
+                    borderWidth: 2,
+                    borderColor:
+                      color === p.hex ? "#FFFFFF" : "#FFFFFF10",
+                  }}
+                />
+                <Text
+                  style={{
+                    color: color === p.hex ? "#FFFFFF" : "#FFFFFF40",
+                    fontSize: 9,
+                    fontWeight: "600",
+                  }}
+                >
+                  {p.name}
+                </Text>
+              </VStack>
+            </Pressable>
+          ))}
+        </HStack>
+      </VStack>
+
+      {/* Live preview of the color in context */}
+      <VStack className="gap-2">
+        <Text style={{ color: "#FFFFFF50", fontSize: 12, fontWeight: "600" }}>
+          PREVIEW
+        </Text>
+        <Box
+          className="rounded-xl px-4 py-3"
+          style={{ backgroundColor: "#FFFFFF05", borderWidth: 1, borderColor: "#FFFFFF08" }}
+        >
+          <VStack className="gap-3">
+            <HStack className="gap-3 items-center">
+              <Box
+                className="rounded-lg px-3 py-1.5"
+                style={{ backgroundColor: color }}
+              >
+                <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "700" }}>
+                  Primary Button
+                </Text>
+              </Box>
+              <Text style={{ color, fontSize: 14, fontWeight: "600" }}>
+                Link Text
+              </Text>
+            </HStack>
+            <HStack className="gap-2 items-center">
+              <Box
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <Text style={{ color: "#FFFFFF80", fontSize: 13 }}>
+                Active indicator
+              </Text>
+              <Box className="flex-1" />
+              <Box
+                className="rounded-full px-2 py-0.5"
+                style={{ backgroundColor: color + "20" }}
+              >
+                <Text style={{ color, fontSize: 11, fontWeight: "600" }}>
+                  Badge
+                </Text>
+              </Box>
+            </HStack>
+          </VStack>
+        </Box>
+      </VStack>
+    </VStack>
+  );
+}
+
 function DecisionCard({
   decision,
   number,
   selection,
   onSelect,
+  accentColor,
+  onAccentColorChange,
 }: {
   decision: Decision;
   number: number;
   selection: number | null;
   onSelect: (optionIndex: number) => void;
+  accentColor?: string;
+  onAccentColorChange?: (hex: string) => void;
 }) {
   const catColor = categoryColors[decision.category] ?? "#888";
 
@@ -522,6 +678,11 @@ function DecisionCard({
           />
         ))}
       </VStack>
+
+      {/* Color picker for brand accent question */}
+      {decision.id === 4 && accentColor && onAccentColorChange && (
+        <ColorPicker color={accentColor} onColorChange={onAccentColorChange} />
+      )}
     </VStack>
   );
 }
@@ -569,8 +730,10 @@ function ProgressBar({
 
 function SummarySection({
   selections,
+  accentColor,
 }: {
   selections: Record<number, number>;
+  accentColor?: string;
 }) {
   const answered = decisions.filter((d) => selections[d.id] !== undefined);
   if (answered.length === 0) return null;
@@ -594,9 +757,17 @@ function SummarySection({
                 <Text style={{ color: "#FFFFFFCC", fontSize: 13 }}>
                   {d.question}
                 </Text>
-                <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "600" }}>
-                  → {picked.label}
-                </Text>
+                <HStack className="gap-2 items-center">
+                  <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "600" }}>
+                    → {picked.label}
+                  </Text>
+                  {d.id === 4 && accentColor && (
+                    <Box
+                      className="w-4 h-4 rounded"
+                      style={{ backgroundColor: accentColor }}
+                    />
+                  )}
+                </HStack>
               </VStack>
             </HStack>
           );
@@ -610,11 +781,12 @@ function SummarySection({
 /*  Screen                                                             */
 /* ------------------------------------------------------------------ */
 
-const categories = ["Typography", "Colors", "Icons", "Emoji", "Components", "Architecture"];
+const categories = ["Typography", "Colors", "Icons", "Components", "Architecture"];
 
 export default function DesignDecisions() {
   const [selections, setSelections] = useState<Record<number, number>>({});
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [accentColor, setAccentColor] = useState("#FF6B35");
 
   const handleSelect = (decisionId: number, optionIndex: number) => {
     setSelections((prev) => {
@@ -661,7 +833,7 @@ export default function DesignDecisions() {
           </VStack>
 
           <Text style={{ color: "#FFFFFF70", fontSize: 15, lineHeight: 22 }}>
-            15 open questions for the Tuesday design system. Tap to choose.
+            13 open questions for the Tuesday design system. Tap to choose.
             Bring answers to the call.
           </Text>
 
@@ -751,13 +923,15 @@ export default function DesignDecisions() {
                 onSelect={(optionIndex) =>
                   handleSelect(decision.id, optionIndex)
                 }
+                accentColor={accentColor}
+                onAccentColorChange={setAccentColor}
               />
             </React.Fragment>
           ))}
         </VStack>
 
         {/* ── Summary ─────────────────────────────────────────────── */}
-        <SummarySection selections={selections} />
+        <SummarySection selections={selections} accentColor={accentColor} />
 
         {/* ── Footer ──────────────────────────────────────────────── */}
         <VStack className="gap-3 pt-4">
