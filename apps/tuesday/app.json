@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "tuesday",
+    "slug": "tuesday",
+    "version": "1.0.0",
+    "scheme": "tuesday",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

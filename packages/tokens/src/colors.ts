@@ -1,3 +1,16 @@
+export const gray = {
+  50: { DEFAULT: '#0A0A0A', light: '#FAFAFA' },
+  100: { DEFAULT: '#141414', light: '#F5F5F5' },
+  200: { DEFAULT: '#1F1F1F', light: '#E5E5E5' },
+  300: { DEFAULT: '#292929', light: '#D4D4D4' },
+  400: { DEFAULT: '#3D3D3D', light: '#A3A3A3' },
+  500: { DEFAULT: '#525252', light: '#737373' },
+  600: { DEFAULT: '#737373', light: '#525252' },
+  700: { DEFAULT: '#A3A3A3', light: '#3D3D3D' },
+  800: { DEFAULT: '#D4D4D4', light: '#292929' },
+  900: { DEFAULT: '#EDEDED', light: '#171717' },
+} as const;
+
 export const colors = {
   background: {
     DEFAULT: '#000000',
@@ -23,4 +36,5 @@ export const colors = {
     light: '#EAEAEA',
     secondary: { DEFAULT: '#222222', light: '#F0F0F0' },
   },
+  gray,
 } as const;

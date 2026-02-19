@@ -1,12 +1,14 @@
 export const fontFamily = {
-  sans: ['Inter'],
+  sans: ['GeistSans'],
   mono: ['GeistMono'],
 } as const;
 
 export const fontWeight = {
+  light: '300',
   regular: '400',
   medium: '500',
   semibold: '600',
+  bold: '700',
 } as const;
 
 export const fontSize = {

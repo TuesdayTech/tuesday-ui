@@ -1,7 +1,13 @@
-import { colors } from './colors';
+import { colors, gray } from './colors';
 import { spacing } from './spacing';
 import { radii } from './radii';
-import { fontFamily, fontSize } from './typography';
+import { fontFamily, fontWeight, fontSize } from './typography';
+
+// Flatten gray scale for Tailwind (dark-first DEFAULT values)
+const tailwindGray: Record<string, string> = {};
+for (const [step, value] of Object.entries(gray)) {
+  tailwindGray[step] = value.DEFAULT;
+}
 
 // Flatten colors for Tailwind dark-first approach
 const tailwindColors = {
@@ -24,6 +30,7 @@ const tailwindColors = {
     DEFAULT: colors.border.DEFAULT,
     secondary: colors.border.secondary.DEFAULT,
   },
+  gray: tailwindGray,
   // Light mode overrides via CSS vars handled by ThemeProvider
   light: {
     background: {
@@ -54,9 +61,10 @@ export const tuesdayPreset = {
         sans: fontFamily.sans,
         mono: fontFamily.mono,
       },
+      fontWeight,
       fontSize,
     },
   },
-} as const;
+};
 
 export default tuesdayPreset;
