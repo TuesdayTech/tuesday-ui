@@ -8,7 +8,7 @@ import { useThemeColors } from "../../hooks/useThemeColors";
 export default function SearchScreen() {
   const t = useThemeColors();
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.background }} edges={["top"]}>
       <ScreenHeader
         title="Search"
         rightActions={

@@ -8,7 +8,7 @@ import { useThemeColors } from "../../hooks/useThemeColors";
 export default function ProfileScreen() {
   const t = useThemeColors();
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.background }} edges={["top"]}>
       <ScreenHeader
         title="Profile"
         rightActions={

@@ -29,7 +29,7 @@ export default function WorkIndex() {
   if (isDesktopWeb) return <Redirect href="/work/actions" />;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.background }} edges={["top"]}>
       <ScreenHeader title="Work" />
       <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
         {workSections.map((section) => {
