@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Sparkle } from "phosphor-react-native";
 import { useIsDesktopWeb } from "../hooks/useIsDesktopWeb";
@@ -23,12 +23,11 @@ export function AIFab() {
           // TODO: open AI overlay panel
         }}
         style={({ pressed }) => ({
-          flexDirection: "row",
           alignItems: "center",
-          gap: 10,
+          justifyContent: "center",
+          width: isDesktop ? 52 : 48,
+          height: isDesktop ? 52 : 48,
           backgroundColor: pressed ? t.backgroundTertiary : t.backgroundSecondary,
-          paddingHorizontal: 20,
-          paddingVertical: 14,
           borderRadius: 9999,
           borderWidth: 1,
           borderColor: t.border,
@@ -40,15 +39,6 @@ export function AIFab() {
         })}
       >
         <Sparkle size={20} color={t.foreground} weight="fill" />
-        <Text
-          style={{
-            fontFamily: "GeistSans-SemiBold",
-            fontSize: 15,
-            color: t.foreground,
-          }}
-        >
-          AI
-        </Text>
       </Pressable>
     </View>
   );

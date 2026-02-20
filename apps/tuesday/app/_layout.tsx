@@ -12,6 +12,7 @@ export default function RootLayout() {
     "GeistSans-SemiBold": require("../assets/fonts/GeistSans-SemiBold.ttf"),
     "GeistSans-Bold": require("../assets/fonts/GeistSans-Bold.ttf"),
     GeistMono: require("../assets/fonts/GeistMono-Regular.ttf"),
+    "GeistMono-SemiBold": require("../assets/fonts/GeistMono-SemiBold.ttf"),
   });
 
   const scheme = useColorScheme();
