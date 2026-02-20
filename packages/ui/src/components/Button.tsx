@@ -13,6 +13,7 @@ export interface ButtonProps extends Omit<PressableProps, 'children'> {
   loading?: boolean;
   disabled?: boolean;
   children: React.ReactNode;
+  ref?: React.Ref<View>;
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -43,52 +44,46 @@ const sizeTextClasses: Record<ButtonSize, string> = {
   lg: 'text-base',
 };
 
-export const Button = React.forwardRef<View, ButtonProps>(
-  (
-    {
-      variant = 'primary',
-      size = 'md',
-      loading = false,
-      disabled = false,
-      children,
-      className,
-      ...props
-    },
-    ref
-  ) => {
-    const isDisabled = disabled || loading;
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  disabled = false,
+  children,
+  className,
+  ref,
+  ...props
+}: ButtonProps) {
+  const isDisabled = disabled || loading;
 
-    return (
-      <Pressable
-        ref={ref}
-        disabled={isDisabled}
-        className={cn(
-          'flex-row items-center justify-center',
-          variantClasses[variant],
-          sizeClasses[size],
-          isDisabled && 'opacity-50',
-          className
-        )}
-        {...props}
-      >
-        {loading ? (
-          <ActivityIndicator
-            size="small"
-            color={variant === 'primary' || variant === 'destructive' ? '#FFFFFF' : '#A1A1A1'}
-          />
-        ) : (
-          <Text
-            className={cn(
-              variantTextClasses[variant],
-              sizeTextClasses[size]
-            )}
-          >
-            {children}
-          </Text>
-        )}
-      </Pressable>
-    );
-  }
-);
-
-Button.displayName = 'Button';
+  return (
+    <Pressable
+      ref={ref}
+      disabled={isDisabled}
+      className={cn(
+        'flex-row items-center justify-center',
+        variantClasses[variant],
+        sizeClasses[size],
+        isDisabled && 'opacity-50',
+        className
+      )}
+      {...props}
+    >
+      {loading ? (
+        <ActivityIndicator
+          size="small"
+          color={variant === 'primary' || variant === 'destructive' ? '#FFFFFF' : '#A1A1A1'}
+        />
+      ) : (
+        <Text
+          className={cn(
+            variantTextClasses[variant],
+            sizeTextClasses[size]
+          )}
+        >
+          {children}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
