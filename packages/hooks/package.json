@@ -6,6 +6,6 @@
   "types": "./dist/index.d.ts",
   "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
   "scripts": { "build": "tsc", "clean": "rm -rf dist" },
-  "dependencies": { "react": "^18.3.1" },
-  "devDependencies": { "typescript": "^5.6.0", "@types/react": "^18.3.0" }
+  "dependencies": { "react": "19.1.0" },
+  "devDependencies": { "typescript": "~5.9.0", "@types/react": "~19.1.0" }
 }

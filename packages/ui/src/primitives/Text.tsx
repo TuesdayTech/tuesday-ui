@@ -3,12 +3,9 @@ import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
 export interface TextProps extends RNTextProps {
   className?: string;
+  ref?: React.Ref<RNText>;
 }
 
-export const Text = React.forwardRef<RNText, TextProps>(
-  ({ className, ...props }, ref) => {
-    return <RNText ref={ref} className={className} {...props} />;
-  }
-);
-
-Text.displayName = 'Text';
+export function Text({ className, ref, ...props }: TextProps) {
+  return <RNText ref={ref} className={className} {...props} />;
+}

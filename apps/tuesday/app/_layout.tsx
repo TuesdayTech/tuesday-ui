@@ -1,5 +1,6 @@
 import "../global.css";
 import React from "react";
+import { View, useColorScheme } from "react-native";
 import { Slot } from "expo-router";
 import { useFonts } from "expo-font";
 
@@ -13,7 +14,14 @@ export default function RootLayout() {
     GeistMono: require("../assets/fonts/GeistMono-Regular.ttf"),
   });
 
+  const scheme = useColorScheme();
+  const isDark = scheme === "dark";
+
   if (!fontsLoaded) return null;
 
-  return <Slot />;
+  return (
+    <View style={{ flex: 1, backgroundColor: isDark ? "#000000" : "#FFFFFF" }}>
+      <Slot />
+    </View>
+  );
 }

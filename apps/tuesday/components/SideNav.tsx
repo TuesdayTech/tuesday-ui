@@ -1,10 +1,11 @@
-import React, { useState, createContext, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { View, Text, Pressable } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { useNavMode } from "../hooks/useIsDesktopWeb";
 import { useThemeColors } from "../hooks/useThemeColors";
 import { fontSize } from "@tuesday-ui/tokens";
 import { TuesdayLogo } from "./TuesdayLogo";
+import { NavExpandedCtx, NavThemeCtx, TOP_BAR_HEIGHT } from "./nav-context";
 import {
   House,
   MagnifyingGlass,
@@ -17,6 +18,8 @@ import {
   List,
   BookmarkSimple,
 } from "phosphor-react-native";
+
+export { NavExpandedCtx, NavThemeCtx, TOP_BAR_HEIGHT } from "./nav-context";
 
 type NavItem = {
   label: string;
@@ -41,13 +44,6 @@ const bottomItems: NavItem[] = [
 
 const COLLAPSED_WIDTH = 72;
 const EXPANDED_WIDTH = 220;
-export const TOP_BAR_HEIGHT = 56;
-
-// Context to pass expanded state down without prop drilling
-export const NavExpandedCtx = createContext(true);
-
-// Context to pass theme colors to child components
-export const NavThemeCtx = createContext<ReturnType<typeof useThemeColors> | null>(null);
 
 /** Animated label — fades and slides in when sidebar expands */
 function NavLabel({ children, bold }: { children: string; bold: boolean }) {

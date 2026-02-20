@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { View } from "react-native";
 import Svg, { Path, G } from "react-native-svg";
-import { NavExpandedCtx, NavThemeCtx } from "./SideNav";
+import { NavExpandedCtx, NavThemeCtx } from "./nav-context";
 
 const LOGO_HEIGHT = 24;
 const ASPECT_RATIO = 291 / 54;

@@ -5,21 +5,16 @@ import { cn } from '@tuesday-ui/utils';
 export interface StackProps extends ViewProps {
   className?: string;
   gap?: number;
+  ref?: React.Ref<View>;
 }
 
-export const VStack = React.forwardRef<View, StackProps>(
-  ({ className, ...props }, ref) => {
-    return <View ref={ref} className={cn('flex flex-col', className)} {...props} />;
-  }
-);
-VStack.displayName = 'VStack';
+export function VStack({ className, ref, ...props }: StackProps) {
+  return <View ref={ref} className={cn('flex flex-col', className)} {...props} />;
+}
 
-export const HStack = React.forwardRef<View, StackProps>(
-  ({ className, ...props }, ref) => {
-    return <View ref={ref} className={cn('flex flex-row', className)} {...props} />;
-  }
-);
-HStack.displayName = 'HStack';
+export function HStack({ className, ref, ...props }: StackProps) {
+  return <View ref={ref} className={cn('flex flex-row', className)} {...props} />;
+}
 
 /** Stack defaults to vertical (VStack) */
 export const Stack = VStack;
