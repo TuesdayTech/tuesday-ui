@@ -9,11 +9,13 @@ import {
   UserCircle,
 } from "phosphor-react-native";
 import { useIsDesktopWeb } from "../../hooks/useIsDesktopWeb";
+import { useThemeColors } from "../../hooks/useThemeColors";
 import { SideNav } from "../../components/SideNav";
 import { AIFab } from "../../components/AIFab";
 
 export default function TabsLayout() {
   const isDesktopWeb = useIsDesktopWeb();
+  const t = useThemeColors();
 
   if (isDesktopWeb) {
     return (
@@ -32,13 +34,13 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: "#000000",
-            borderTopColor: "#222222",
+            backgroundColor: t.background,
+            borderTopColor: t.borderSecondary,
             borderTopWidth: 0.5,
             paddingBottom: 4,
           },
-          tabBarActiveTintColor: "#EDEDED",
-          tabBarInactiveTintColor: "#707070",
+          tabBarActiveTintColor: t.foreground,
+          tabBarInactiveTintColor: t.foregroundSubtle,
           tabBarLabelStyle: {
             fontFamily: "GeistSans",
             fontSize: 10,

@@ -3,15 +3,17 @@ import { View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus } from "phosphor-react-native";
 import { ScreenHeader } from "../../components/ScreenHeader";
+import { useThemeColors } from "../../hooks/useThemeColors";
 
 export default function AIScreen() {
+  const t = useThemeColors();
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScreenHeader
         title="AI"
         rightActions={
           <Pressable hitSlop={8}>
-            <Plus size={22} color="#A1A1A1" weight="regular" />
+            <Plus size={22} color={t.foregroundMuted} weight="regular" />
           </Pressable>
         }
       />

@@ -1,52 +1,38 @@
-import { colors, gray } from './colors';
 import { spacing } from './spacing';
 import { radii } from './radii';
 import { fontFamily, fontWeight, fontSize } from './typography';
 
-// Flatten gray scale for Tailwind (dark-first DEFAULT values)
-const tailwindGray: Record<string, string> = {};
-for (const [step, value] of Object.entries(gray)) {
-  tailwindGray[step] = value.DEFAULT;
-}
-
-// Flatten colors for Tailwind dark-first approach
 const tailwindColors = {
   background: {
-    DEFAULT: colors.background.DEFAULT,
-    secondary: colors.background.secondary.DEFAULT,
-    tertiary: colors.background.tertiary.DEFAULT,
+    DEFAULT: 'var(--color-background)',
+    secondary: 'var(--color-background-secondary)',
+    tertiary: 'var(--color-background-tertiary)',
   },
   foreground: {
-    DEFAULT: colors.foreground.DEFAULT,
-    muted: colors.foreground.muted.DEFAULT,
-    subtle: colors.foreground.subtle.DEFAULT,
+    DEFAULT: 'var(--color-foreground)',
+    muted: 'var(--color-foreground-muted)',
+    subtle: 'var(--color-foreground-subtle)',
   },
-  accent: colors.accent.DEFAULT,
-  success: colors.success.DEFAULT,
-  error: colors.error.DEFAULT,
-  warning: colors.warning.DEFAULT,
-  info: colors.info.DEFAULT,
+  accent: 'var(--color-accent)',
+  success: 'var(--color-success)',
+  error: 'var(--color-error)',
+  warning: 'var(--color-warning)',
+  info: 'var(--color-info)',
   border: {
-    DEFAULT: colors.border.DEFAULT,
-    secondary: colors.border.secondary.DEFAULT,
+    DEFAULT: 'var(--color-border)',
+    secondary: 'var(--color-border-secondary)',
   },
-  gray: tailwindGray,
-  // Light mode overrides via CSS vars handled by ThemeProvider
-  light: {
-    background: {
-      DEFAULT: colors.background.light,
-      secondary: colors.background.secondary.light,
-      tertiary: colors.background.tertiary.light,
-    },
-    foreground: {
-      DEFAULT: colors.foreground.light,
-      muted: colors.foreground.muted.light,
-      subtle: colors.foreground.subtle.light,
-    },
-    border: {
-      DEFAULT: colors.border.light,
-      secondary: colors.border.secondary.light,
-    },
+  gray: {
+    50: 'var(--color-gray-50)',
+    100: 'var(--color-gray-100)',
+    200: 'var(--color-gray-200)',
+    300: 'var(--color-gray-300)',
+    400: 'var(--color-gray-400)',
+    500: 'var(--color-gray-500)',
+    600: 'var(--color-gray-600)',
+    700: 'var(--color-gray-700)',
+    800: 'var(--color-gray-800)',
+    900: 'var(--color-gray-900)',
   },
 };
 

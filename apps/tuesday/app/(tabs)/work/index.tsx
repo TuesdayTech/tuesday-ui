@@ -3,6 +3,7 @@ import { View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, useRouter } from "expo-router";
 import { useIsDesktopWeb } from "../../../hooks/useIsDesktopWeb";
+import { useThemeColors } from "../../../hooks/useThemeColors";
 import { ScreenHeader } from "../../../components/ScreenHeader";
 import {
   Lightning,
@@ -23,6 +24,7 @@ const workSections = [
 export default function WorkIndex() {
   const isDesktopWeb = useIsDesktopWeb();
   const router = useRouter();
+  const t = useThemeColors();
 
   if (isDesktopWeb) return <Redirect href="/work/actions" />;
 
@@ -44,12 +46,12 @@ export default function WorkIndex() {
                 opacity: pressed ? 0.5 : 1,
               })}
             >
-              <Icon size={28} color="#EDEDED" weight="regular" />
+              <Icon size={28} color={t.foreground} weight="regular" />
               <Text
                 style={{
                   fontFamily: "GeistSans-SemiBold",
                   fontSize: 28,
-                  color: "#EDEDED",
+                  color: t.foreground,
                 }}
               >
                 {section.label}
