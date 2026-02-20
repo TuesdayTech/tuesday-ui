@@ -38,13 +38,7 @@ export default function WorkIndex() {
             <Pressable
               key={section.href}
               onPress={() => router.push(section.href as any)}
-              style={({ pressed }) => ({
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 20,
-                paddingVertical: 18,
-                opacity: pressed ? 0.5 : 1,
-              })}
+              className="flex-row items-center py-[18px] active:opacity-50"
             >
               <Icon size={28} color={t.foreground} weight="regular" />
               <Text
@@ -52,6 +46,7 @@ export default function WorkIndex() {
                   fontFamily: "GeistSans-SemiBold",
                   fontSize: 28,
                   color: t.foreground,
+                  marginLeft: 20,
                 }}
               >
                 {section.label}
