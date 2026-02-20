@@ -8,11 +8,12 @@ This repo (`tuesday-ui`) is the monorepo containing the Expo app, design system,
 
 ## Tech Stack
 
-- **Framework**: Expo 52 + Expo Router 4 (file-based routing)
+- **Framework**: Expo 54 + Expo Router 6 (file-based routing)
 - **Language**: TypeScript (strict)
-- **Styling**: NativeWind v4 + Tailwind CSS v3 — use `className` for layout, inline `style` for dynamic/theme values
+- **Styling**: NativeWind v5 + Tailwind CSS v4 — use `className` for layout, inline `style` for dynamic/theme values
 - **Icons**: Phosphor React Native (`weight="fill"` for active, `weight="bold"` for inactive tabs, `weight="regular"` for SideNav/actions)
-- **Animations**: Reanimated 3 (no Animated API, no LayoutAnimation)
+- **Animations**: Reanimated 4 (no Animated API, no LayoutAnimation)
+- **React**: React 19.1 + React Native 0.81
 - **Fonts**: Geist Sans (Light/Regular/Medium/SemiBold/Bold), GeistMono (nav labels)
 - **Dark mode**: System-follows via `useColorScheme()` + CSS `prefers-color-scheme` in global.css
 
@@ -85,7 +86,7 @@ hooks/
 | Card style | Shadows |
 | Loading state | Shimmer / Skeleton |
 | Border radius | `md` = 8px (default), `sm` = 4px, `lg` = 12px |
-| Animation lib | Reanimated only |
+| Animation lib | Reanimated 4 only |
 
 ## Color System
 
@@ -104,7 +105,7 @@ const t = useThemeColors();
 
 All shared components follow this pattern:
 - Accept `className` prop for styling overrides
-- Use `React.forwardRef` for native ref access
+- Use React 19 ref-as-prop pattern (no forwardRef needed)
 - Use `cn()` from `@tuesday-ui/utils` for class merging
 - Variant-based styling via `Record<Variant, string>` maps
 - Sizes: `sm`, `md` (default), `lg`
