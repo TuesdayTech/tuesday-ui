@@ -9,7 +9,16 @@
       "expo-router"
     ],
     "ios": {
-      "bundleIdentifier": "com.anonymous.tuesday"
+      "bundleIdentifier": "com.anonymous.tuesday",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSExceptionDomains": {
+            "on-tuesday.us-west-1.elasticbeanstalk.com": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
+      }
     }
   }
 }

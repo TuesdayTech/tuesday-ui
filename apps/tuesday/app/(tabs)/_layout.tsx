@@ -1,4 +1,5 @@
 import React from "react";
+import { Image, View } from "react-native";
 import { Tabs } from "expo-router";
 import { Slot } from "expo-router";
 import {
@@ -10,12 +11,15 @@ import {
 } from "phosphor-react-native";
 import { useIsDesktopWeb } from "../../hooks/useIsDesktopWeb";
 import { useThemeColors } from "../../hooks/useThemeColors";
+import { useAuth } from "../../providers/auth-provider";
 import { SideNav } from "../../components/SideNav";
 import { AIFab } from "../../components/AIFab";
 
 export default function TabsLayout() {
   const isDesktopWeb = useIsDesktopWeb();
   const t = useThemeColors();
+  const { profile } = useAuth();
+  const avatarUrl = profile?.Media ?? null;
 
   if (isDesktopWeb) {
     return (
@@ -91,9 +95,26 @@ export default function TabsLayout() {
           name="profile"
           options={{
             title: "Profile",
-            tabBarIcon: ({ color, focused }) => (
-              <UserCircle size={iconSize} color={color} weight={focused ? "fill" : "bold"} />
-            ),
+            tabBarIcon: ({ color, focused }) =>
+              avatarUrl ? (
+                <View
+                  style={{
+                    width: iconSize + 2,
+                    height: iconSize + 2,
+                    borderRadius: (iconSize + 2) / 2,
+                    borderWidth: focused ? 1.5 : 0,
+                    borderColor: t.foreground,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                </View>
+              ) : (
+                <UserCircle size={iconSize} color={color} weight={focused ? "fill" : "bold"} />
+              ),
           }}
         />
         {/* AI is a FAB, not a tab */}

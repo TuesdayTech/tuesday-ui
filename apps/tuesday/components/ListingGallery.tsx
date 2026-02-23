@@ -10,8 +10,8 @@ import {
   NativeScrollEvent,
 } from "react-native";
 
-/** Generates photo URLs using picsum.photos with deterministic seeds */
-function generatePhotos(count: number, seed: number) {
+/** Generates placeholder photo URLs using picsum.photos with deterministic seeds */
+function generatePlaceholderPhotos(count: number, seed: number) {
   return Array.from({ length: count }, (_, i) => ({
     id: `${seed}-${i}`,
     uri: `https://picsum.photos/seed/tuesday-${seed}-${i}/800/600`,
@@ -19,9 +19,19 @@ function generatePhotos(count: number, seed: number) {
   }));
 }
 
+function buildPhotos(photoUrls: string[] | undefined, listingIndex: number) {
+  if (photoUrls && photoUrls.length > 0) {
+    return photoUrls.map((uri, i) => ({ id: `${listingIndex}-${i}`, uri, index: i }));
+  }
+  return generatePlaceholderPhotos(5, listingIndex);
+}
+
 interface ListingGalleryProps {
   listingIndex: number;
-  photoCount: number;
+  /** Real photo URLs from the API. Falls back to placeholders if empty/undefined. */
+  photoUrls?: string[];
+  /** @deprecated Use photoUrls instead. Only used for placeholder generation. */
+  photoCount?: number;
   height: number;
   statusEmoji: string;
   statusText: string;
@@ -31,6 +41,7 @@ interface ListingGalleryProps {
 
 export function ListingGallery({
   listingIndex,
+  photoUrls,
   photoCount,
   height,
   statusEmoji,
@@ -40,7 +51,8 @@ export function ListingGallery({
 }: ListingGalleryProps) {
   const { width } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const photos = useRef(generatePhotos(photoCount, listingIndex)).current;
+  const photos = useRef(buildPhotos(photoUrls, listingIndex)).current;
+  const totalPhotos = photos.length;
 
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -118,7 +130,7 @@ export function ListingGallery({
             fontSize: 12,
           }}
         >
-          {currentIndex + 1}/{photoCount}
+          {currentIndex + 1}/{totalPhotos}
         </Text>
       </View>
     </View>

@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
   Pressable,
   ScrollView,
+  ActivityIndicator,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
@@ -18,71 +19,84 @@ import { Rows, GearSix } from "phosphor-react-native";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ListingGallery } from "../../components/ListingGallery";
 import { PhotoViewer } from "../../components/PhotoViewer";
+import { useInfiniteFeed } from "../../hooks/use-feed";
+import { useAuth } from "../../providers/auth-provider";
+import type { Listing } from "../../types/listing";
 
-type ListingStatus =
-  | "active"
-  | "priceChange"
-  | "comingSoon"
-  | "contingent"
-  | "pending"
-  | "closed"
-  | "expired"
-  | "canceled"
-  | "hold";
+// --- Status display config ---
+// Keys match API MajorChangeType / StandardStatus values (with spaces)
+
+// Colors from SwiftUI: geistGreen, geistAmber, geistRed, accent
+const GREEN = "#2EA043";
+const AMBER = "#F5A623";
+const RED = "#E5484D";
+const ACCENT = "#0A84FF";
 
 const STATUS_CONFIG: Record<
-  ListingStatus,
-  { emoji: string; label: string; color: string; darkColor?: string }
+  string,
+  { emoji: string; label: string; color: string }
 > = {
-  active:      { emoji: "🏡", label: "ACTIVE",       color: "#2EA043" },
-  priceChange: { emoji: "💰", label: "PRICE CHANGE", color: "#2EA043" },
-  comingSoon:  { emoji: "⏱️", label: "COMING SOON",  color: "#2EA043" },
-  contingent:  { emoji: "🤞", label: "CONTINGENT",   color: "#F5A623" },
-  pending:     { emoji: "⏳", label: "PENDING",      color: "#F5A623" },
-  closed:      { emoji: "🔑", label: "CLOSED",       color: "#FFFFFF", darkColor: "#000000" },
-  expired:     { emoji: "☠️", label: "EXPIRED",      color: "#E5484D" },
-  canceled:    { emoji: "🚫", label: "CANCELED",     color: "#E5484D" },
-  hold:        { emoji: "✋", label: "HOLD",         color: "#E5484D" },
+  // Green — active listings
+  "Active":         { emoji: "🏡", label: "ACTIVE",         color: GREEN },
+  "New Listing":    { emoji: "🚀", label: "NEW LISTING",    color: GREEN },
+  "Price Change":   { emoji: "💰", label: "PRICE CHANGE",   color: GREEN },
+  "Back On Market": { emoji: "♻️",  label: "BACK ON MARKET", color: GREEN },
+  "Coming Soon":    { emoji: "⏱️",  label: "COMING SOON",    color: GREEN },
+
+  // Amber — in process
+  "Contingent": { emoji: "🤞", label: "CONTINGENT", color: AMBER },
+  "Pending":    { emoji: "⏳", label: "PENDING",    color: AMBER },
+
+  // Accent — closed
+  "Closed": { emoji: "🔑", label: "CLOSED", color: ACCENT },
+
+  // Red — off market
+  "Expired":    { emoji: "☠️",  label: "EXPIRED",    color: RED },
+  "Canceled":   { emoji: "🚫", label: "CANCELED",   color: RED },
+  "Hold":       { emoji: "✋", label: "HOLD",       color: RED },
+  "Withdrawn":  { emoji: "🪝", label: "WITHDRAWN",  color: RED },
+  "Deleted":    { emoji: "🗑️",  label: "DELETED",    color: RED },
+  "Incomplete": { emoji: "⚠️",  label: "INCOMPLETE", color: RED },
 };
+
+const DEFAULT_STATUS = { emoji: "❓", label: "UNKNOWN", color: "#888888" };
+
+function getStatusConfig(item: Listing) {
+  // MajorChangeType is more specific (e.g. "Price Change", "Back On Market")
+  const key = item.MajorChangeType ?? item.StandardStatus;
+  if (!key) return DEFAULT_STATUS;
+  return STATUS_CONFIG[key] ?? DEFAULT_STATUS;
+}
+
+// --- Helpers to extract agent info from flat Listing fields ---
 
 interface AgentSide {
   offices: string[];
   agents: string[];
 }
 
-interface Listing {
-  id: string;
-  address: string;
-  subtype: string;
-  city: string;
-  postal: string;
-  county: string;
-  remarks: string;
-  photoCount: number;
-  price: number;
-  sqft: number;
-  lotSqft: number;
-  beds: number;
-  baths: number;
-  dom: number;
-  status: ListingStatus;
-  timeAgo: string;
-  listedBy: AgentSide;
-  soldBy?: AgentSide;
+function getListingSide(item: Listing): AgentSide {
+  const offices = [item.ListAgentOfficeName, item.CoListAgentOfficeName].filter(
+    (o): o is string => !!o,
+  );
+  const agents = [item.ListAgentFullName, item.CoListAgentFullName].filter(
+    (a): a is string => !!a,
+  );
+  return { offices, agents };
 }
 
-const PLACEHOLDER_LISTINGS: Listing[] = [
-  { id: "1", address: "825 Sonora Road", subtype: "Single Family Residence", city: "Laguna Beach, CA", postal: "92651", county: "Orange", remarks: "Stunning ocean-view home nestled in the hills of Laguna Beach with panoramic coastline views, updated kitchen, and private backyard oasis.", photoCount: 23, price: 1330000, sqft: 1419, lotSqft: 6510, beds: 4, baths: 2, dom: 45, status: "active", timeAgo: "2h", listedBy: { offices: ["Compass"], agents: ["Tony Stark"] } },
-  { id: "2", address: "1247 Ocean Ave", subtype: "Condo/Co-op", city: "Santa Monica, CA", postal: "90401", county: "Los Angeles", remarks: "Luxury beachfront condo with floor-to-ceiling windows, designer finishes throughout, and direct access to the Santa Monica Pier.", photoCount: 18, price: 2150000, sqft: 2340, lotSqft: 5200, beds: 5, baths: 4, dom: 12, status: "priceChange", timeAgo: "15m", listedBy: { offices: ["The Agency", "Keller Williams"], agents: ["Natasha Romanoff", "Pepper Potts"] } },
-  { id: "3", address: "4501 Collins Ave #3204", subtype: "Condo/Co-op", city: "Miami, FL", postal: "33140", county: "Miami-Dade", remarks: "Modern high-rise living in the heart of Miami Beach with resort-style amenities, ocean views from every room, and marble finishes.", photoCount: 31, price: 875000, sqft: 1650, lotSqft: 4800, beds: 3, baths: 2, dom: 67, status: "comingSoon", timeAgo: "1d", listedBy: { offices: ["Douglas Elliman"], agents: ["Bruce Banner"] } },
-  { id: "4", address: "152 W 57th St #42B", subtype: "Condo/Co-op", city: "New York, NY", postal: "10019", county: "Manhattan", remarks: "Billionaires' Row residence with Central Park views, white-glove service, private elevator entry, and Michelin-star dining on-site.", photoCount: 15, price: 3200000, sqft: 1890, lotSqft: 2100, beds: 3, baths: 3, dom: 8, status: "contingent", timeAgo: "5h", listedBy: { offices: ["Sotheby's International"], agents: ["Steve Rogers"] } },
-  { id: "5", address: "3841 N Greenview Ave", subtype: "Single Family Residence", city: "Chicago, IL", postal: "60613", county: "Cook", remarks: "Classic Chicago brick home in Lakeview with original hardwood floors, updated systems, spacious yard, and a two-car garage.", photoCount: 22, price: 425000, sqft: 1780, lotSqft: 5500, beds: 4, baths: 2, dom: 92, status: "pending", timeAgo: "3d", listedBy: { offices: ["Coldwell Banker"], agents: ["Wanda Maximoff"] } },
-  { id: "6", address: "9102 Meadow Lane", subtype: "Single Family Residence", city: "Houston, TX", postal: "77063", county: "Harris", remarks: "Spacious family home in a quiet cul-de-sac with a newly remodeled kitchen, resort-style pool, and mature oak trees throughout.", photoCount: 27, price: 385000, sqft: 2210, lotSqft: 7200, beds: 4, baths: 3, dom: 31, status: "closed", timeAgo: "7d", listedBy: { offices: ["RE/MAX", "Century 21"], agents: ["Clint Barton", "Scott Lang"] }, soldBy: { offices: ["eXp Realty"], agents: ["Peter Parker"] } },
-  { id: "7", address: "714 Queen Anne Ave N", subtype: "Townhouse", city: "Seattle, WA", postal: "98109", county: "King", remarks: "Contemporary Queen Anne townhouse with rooftop deck, Space Needle views, chef's kitchen, and walkable to all of Lower Queen Anne.", photoCount: 19, price: 1075000, sqft: 1960, lotSqft: 4100, beds: 3, baths: 2, dom: 120, status: "expired", timeAgo: "14d", listedBy: { offices: ["Windermere Real Estate"], agents: ["Thor Odinson"] } },
-  { id: "8", address: "2208 Belmont Blvd", subtype: "Single Family Residence", city: "Nashville, TN", postal: "37212", county: "Davidson", remarks: "Charming Belmont Blvd craftsman with original character, open floor plan, fenced yard, and walking distance to Music Row.", photoCount: 25, price: 650000, sqft: 2450, lotSqft: 8900, beds: 5, baths: 3, dom: 5, status: "active", timeAgo: "45m", listedBy: { offices: ["Village Real Estate"], agents: ["Carol Danvers"] } },
-  { id: "9", address: "560 Peachtree St NE #4102", subtype: "Condo/Co-op", city: "Atlanta, GA", postal: "30308", county: "Fulton", remarks: "Midtown Atlanta penthouse with skyline views, concierge service, rooftop pool, and steps from Piedmont Park and the BeltLine.", photoCount: 20, price: 540000, sqft: 1820, lotSqft: 6100, beds: 4, baths: 2, dom: 58, status: "canceled", timeAgo: "6d", listedBy: { offices: ["Berkshire Hathaway"], agents: ["Sam Wilson"] } },
-  { id: "10", address: "1830 Blake St", subtype: "Townhouse", city: "Denver, CO", postal: "80202", county: "Denver", remarks: "Industrial-chic LoDo townhouse near Coors Field with exposed brick, smart home features, private garage, and rooftop entertaining.", photoCount: 16, price: 725000, sqft: 1540, lotSqft: 3800, beds: 3, baths: 2, dom: 22, status: "hold", timeAgo: "50m", listedBy: { offices: ["LIV Sotheby's", "Compass"], agents: ["Bucky Barnes", "Milly Bobby Brown"] } },
-];
+function getBuyerSide(item: Listing): AgentSide | null {
+  const offices = [item.BuyerAgentOfficeName, item.CoBuyerAgentOfficeName].filter(
+    (o): o is string => !!o,
+  );
+  const agents = [item.BuyerAgentFullName, item.CoBuyerAgentFullName].filter(
+    (a): a is string => !!a,
+  );
+  if (agents.length === 0) return null;
+  return { offices, agents };
+}
+
+// --- Sub-components ---
 
 function AgentSection({
   label,
@@ -95,10 +109,14 @@ function AgentSection({
   color: string;
   nameColor: string;
 }) {
+  if (side.agents.length === 0) return null;
+
   const officeLine =
     side.offices.length > 1
       ? `${label} ${side.offices[0]} and ${side.offices[1]}`
-      : `${label} ${side.offices[0]}`;
+      : side.offices.length === 1
+        ? `${label} ${side.offices[0]}`
+        : label;
 
   return (
     <View style={{ marginTop: 10 }}>
@@ -131,32 +149,67 @@ function AgentSection({
   );
 }
 
-function formatPrice(price: number) {
+function formatPrice(price: number | undefined) {
+  if (!price) return "$--";
   return "$" + price.toLocaleString("en-US");
 }
 
-function formatPpsqft(price: number, sqft: number) {
+function formatPpsqft(price: number | undefined, sqft: number | undefined) {
+  if (!price || !sqft || sqft === 0) return "";
   return "$" + Math.round(price / sqft).toLocaleString("en-US") + "/sqft";
 }
+
+function formatDom(dom: number | undefined) {
+  if (dom === undefined || dom === null) return "";
+  return `${dom}`;
+}
+
+// --- Main screen ---
 
 export default function FeedScreen() {
   const t = useThemeColors();
   const insets = useSafeAreaInsets();
   const [containerHeight, setContainerHeight] = useState(0);
   const scrollY = useSharedValue(0);
+  const { profile } = useAuth();
+  const profileUid = profile?.UID ?? "";
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteFeed({ profileUid });
+
+  const listings = useMemo(
+    () => data?.pages.flatMap((p) => p.listings) ?? [],
+    [data],
+  );
 
   const onLayout = useCallback(
     (e: { nativeEvent: { layout: { height: number } } }) => {
       setContainerHeight(e.nativeEvent.layout.height);
     },
-    []
+    [],
   );
 
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       scrollY.value = e.nativeEvent.contentOffset.y;
+
+      // Prefetch next page when near the end
+      if (containerHeight > 0 && hasNextPage && !isFetchingNextPage) {
+        const contentHeight = listings.length * containerHeight;
+        const scrollOffset = e.nativeEvent.contentOffset.y + containerHeight;
+        if (scrollOffset > contentHeight - containerHeight * 2) {
+          fetchNextPage();
+        }
+      }
     },
-    []
+    [containerHeight, hasNextPage, isFetchingNextPage, listings.length, fetchNextPage],
   );
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
@@ -170,14 +223,14 @@ export default function FeedScreen() {
         scrollY.value,
         [fadeStart, fadeEnd],
         [1, 0],
-        Extrapolation.CLAMP
+        Extrapolation.CLAMP,
       ),
     };
   });
 
   const [viewer, setViewer] = useState<{
     listingIndex: number;
-    photoCount: number;
+    photoUrls: string[];
     startIndex: number;
   } | null>(null);
 
@@ -187,7 +240,65 @@ export default function FeedScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.background }} onLayout={onLayout}>
-      {containerHeight > 0 && (
+      {/* Loading state */}
+      {isLoading && containerHeight > 0 && (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator size="large" color={t.foregroundMuted} />
+          <Text
+            style={{
+              fontFamily: "GeistSans",
+              fontSize: 15,
+              color: t.foregroundMuted,
+              marginTop: 12,
+            }}
+          >
+            Loading feed...
+          </Text>
+        </View>
+      )}
+
+      {/* Error state */}
+      {isError && !isLoading && containerHeight > 0 && (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: 24,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "GeistSans-Medium",
+              fontSize: 17,
+              color: t.foreground,
+              textAlign: "center",
+            }}
+          >
+            Could not load feed
+          </Text>
+          <Text
+            style={{
+              fontFamily: "GeistSans",
+              fontSize: 15,
+              color: t.foregroundMuted,
+              marginTop: 8,
+              textAlign: "center",
+            }}
+          >
+            {error?.message ?? "Something went wrong"}
+          </Text>
+        </View>
+      )}
+
+      {/* Feed */}
+      {!isLoading && !isError && containerHeight > 0 && listings.length > 0 && (
         <ScrollView
           pagingEnabled
           showsVerticalScrollIndicator={false}
@@ -196,145 +307,218 @@ export default function FeedScreen() {
           scrollEventThrottle={16}
           snapToInterval={containerHeight}
         >
-          {PLACEHOLDER_LISTINGS.map((item) => (
-            <View
-              key={item.id}
-              style={{ height: containerHeight, backgroundColor: t.background }}
-            >
-              {/* Map Snapshot — 30% */}
+          {listings.map((item, index) => {
+            const status = getStatusConfig(item);
+            const listingSide = getListingSide(item);
+            const buyerSide = getBuyerSide(item);
+            const photoUrls = item.Photos ?? [];
+            const cityState = [item.City, item.StateOrProvince]
+              .filter(Boolean)
+              .join(", ");
+
+            return (
               <View
-                style={{
-                  height: mapHeight,
-                  backgroundColor: t.backgroundSecondary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                key={item.UID ?? `listing-${item.id}`}
+                style={{ height: containerHeight, backgroundColor: t.background }}
               >
-                <Text
+                {/* Map Snapshot — 30% */}
+                <View
                   style={{
-                    color: t.foregroundMuted,
-                    fontFamily: "GeistSans-Medium",
-                    fontSize: 13,
+                    height: mapHeight,
+                    backgroundColor: t.backgroundSecondary,
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {item.city}
-                </Text>
-              </View>
-
-              {/* Photo Gallery — 30% */}
-              <ListingGallery
-                listingIndex={Number(item.id)}
-                photoCount={item.photoCount}
-                height={galleryHeight}
-                statusEmoji={STATUS_CONFIG[item.status].emoji}
-                statusText={`${STATUS_CONFIG[item.status].label} · ${item.timeAgo}`}
-                statusColor={STATUS_CONFIG[item.status].color}
-                onOpenViewer={(startIndex) =>
-                  setViewer({
-                    listingIndex: Number(item.id),
-                    photoCount: item.photoCount,
-                    startIndex,
-                  })
-                }
-              />
-
-              {/* Info — 40% */}
-              <View
-                style={{
-                  height: infoHeight,
-                  backgroundColor: t.background,
-                  paddingLeft: 12,
-                  paddingTop: 16,
-                }}
-              >
-                {/* Price row */}
-                {/* Price row */}
-                <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>
                   <Text
-                    numberOfLines={1}
                     style={{
-                      fontFamily: "GeistMono",
-                      fontWeight: "700",
-                      fontSize: 28,
-                      color: STATUS_CONFIG[item.status].color,
-                    }}
-                  >
-                    {formatPrice(item.price)}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontFamily: "GeistSans-Medium",
-                      fontSize: 17,
                       color: t.foregroundMuted,
+                      fontFamily: "GeistSans-Medium",
+                      fontSize: 13,
                     }}
                   >
-                    {formatPpsqft(item.price, item.sqft)}
+                    {cityState || "Unknown location"}
                   </Text>
                 </View>
 
-                {/* Stats row */}
-                <Text numberOfLines={1} style={{ color: t.foreground, fontSize: 17, marginTop: 10 }}>
-                  <Text style={{ fontFamily: "GeistSans-Bold" }}>{item.beds}</Text>
-                  <Text style={{ fontFamily: "GeistSans" }}> bd </Text>
-                  <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.baths}</Text>
-                  <Text style={{ fontFamily: "GeistSans" }}> ba </Text>
-                  <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.sqft.toLocaleString()}</Text>
-                  <Text style={{ fontFamily: "GeistSans" }}> sqft </Text>
-                  <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.lotSqft.toLocaleString()}</Text>
-                  <Text style={{ fontFamily: "GeistSans" }}> lot sqft </Text>
-                  <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.dom}</Text>
-                  <Text style={{ fontFamily: "GeistSans" }}> DOM</Text>
-                </Text>
+                {/* Photo Gallery — 30% */}
+                <ListingGallery
+                  listingIndex={index}
+                  photoUrls={photoUrls}
+                  height={galleryHeight}
+                  statusEmoji={status.emoji}
+                  statusText={status.label}
+                  statusColor={status.color}
+                  onOpenViewer={(startIndex) =>
+                    setViewer({
+                      listingIndex: index,
+                      photoUrls,
+                      startIndex,
+                    })
+                  }
+                />
 
-                {/* Address row */}
-                <Text numberOfLines={1} style={{ fontSize: 17, marginTop: 10 }}>
-                  <Text style={{ fontFamily: "GeistSans-Bold", color: t.foreground }}>
-                    {item.address}
-                  </Text>
-                  <Text style={{ fontFamily: "GeistSans-Medium", color: t.foregroundMuted }}>
-                    {"  "}{item.subtype}
-                  </Text>
-                </Text>
-
-                {/* Areas row */}
-                <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
-                  <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: t.foreground, textDecorationLine: "underline" }}>
-                    {item.city}
-                  </Text>
-                  <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: t.foreground, textDecorationLine: "underline" }}>
-                    {item.postal}
-                  </Text>
-                  <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: t.foreground, textDecorationLine: "underline" }}>
-                    {item.county}
-                  </Text>
-                </View>
-
-                {/* Remarks */}
-                <Text
-                  numberOfLines={1}
+                {/* Info — 40% */}
+                <View
                   style={{
-                    fontFamily: "GeistSans",
-                    fontSize: 17,
-                    color: t.foreground,
-                    marginTop: 10,
+                    height: infoHeight,
+                    backgroundColor: t.background,
+                    paddingLeft: 12,
+                    paddingTop: 16,
                   }}
                 >
-                  {item.remarks}
-                </Text>
+                  {/* Price row */}
+                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontFamily: "GeistMono",
+                        fontWeight: "700",
+                        fontSize: 28,
+                        color: status.color,
+                      }}
+                    >
+                      {formatPrice(item.CurrentPrice)}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontFamily: "GeistSans-Medium",
+                        fontSize: 17,
+                        color: t.foregroundMuted,
+                      }}
+                    >
+                      {formatPpsqft(item.CurrentPrice, item.LivingArea)}
+                    </Text>
+                  </View>
 
-                {/* Divider */}
-                <View style={{ height: 1, backgroundColor: t.border, marginTop: 12 }} />
+                  {/* Stats row */}
+                  <Text numberOfLines={1} style={{ color: t.foreground, fontSize: 17, marginTop: 10 }}>
+                    {item.BedroomsTotal != null && (
+                      <>
+                        <Text style={{ fontFamily: "GeistSans-Bold" }}>{item.BedroomsTotal}</Text>
+                        <Text style={{ fontFamily: "GeistSans" }}> bd </Text>
+                      </>
+                    )}
+                    {item.BathroomsTotalInteger != null && (
+                      <>
+                        <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.BathroomsTotalInteger}</Text>
+                        <Text style={{ fontFamily: "GeistSans" }}> ba </Text>
+                      </>
+                    )}
+                    {item.LivingArea != null && (
+                      <>
+                        <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.LivingArea.toLocaleString()}</Text>
+                        <Text style={{ fontFamily: "GeistSans" }}> sqft </Text>
+                      </>
+                    )}
+                    {item.LotSizeSquareFeet != null && (
+                      <>
+                        <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.LotSizeSquareFeet.toLocaleString()}</Text>
+                        <Text style={{ fontFamily: "GeistSans" }}> lot sqft </Text>
+                      </>
+                    )}
+                    {item.DaysOnMarket != null && (
+                      <>
+                        <Text style={{ fontFamily: "GeistSans-Bold" }}>· {formatDom(item.DaysOnMarket)}</Text>
+                        <Text style={{ fontFamily: "GeistSans" }}> DOM</Text>
+                      </>
+                    )}
+                  </Text>
 
-                {/* Agents */}
-                <AgentSection label="Listed by" side={item.listedBy} color={t.foregroundMuted} nameColor={t.foreground} />
-                {item.soldBy && (
-                  <AgentSection label="Sold by" side={item.soldBy} color={t.foregroundMuted} nameColor={t.foreground} />
-                )}
+                  {/* Address row */}
+                  <Text numberOfLines={1} style={{ fontSize: 17, marginTop: 10 }}>
+                    <Text style={{ fontFamily: "GeistSans-Bold", color: t.foreground }}>
+                      {item.UnparsedAddress ?? "No address"}
+                    </Text>
+                    {item.PropertySubType && (
+                      <Text style={{ fontFamily: "GeistSans-Medium", color: t.foregroundMuted }}>
+                        {"  "}{item.PropertySubType}
+                      </Text>
+                    )}
+                  </Text>
+
+                  {/* Areas row */}
+                  <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
+                    {cityState ? (
+                      <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: t.foreground, textDecorationLine: "underline" }}>
+                        {cityState}
+                      </Text>
+                    ) : null}
+                    {item.PostalCode ? (
+                      <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: t.foreground, textDecorationLine: "underline" }}>
+                        {item.PostalCode}
+                      </Text>
+                    ) : null}
+                    {item.CountyOrParish ? (
+                      <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: t.foreground, textDecorationLine: "underline" }}>
+                        {item.CountyOrParish}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {/* Remarks */}
+                  {item.PublicRemarks && (
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontFamily: "GeistSans",
+                        fontSize: 17,
+                        color: t.foreground,
+                        marginTop: 10,
+                      }}
+                    >
+                      {item.PublicRemarks}
+                    </Text>
+                  )}
+
+                  {/* Divider */}
+                  <View style={{ height: 1, backgroundColor: t.border, marginTop: 12 }} />
+
+                  {/* Agents */}
+                  <AgentSection label="Listed by" side={listingSide} color={t.foregroundMuted} nameColor={t.foreground} />
+                  {buyerSide && (
+                    <AgentSection label="Sold by" side={buyerSide} color={t.foregroundMuted} nameColor={t.foreground} />
+                  )}
+                </View>
               </View>
+            );
+          })}
+
+          {/* Loading more indicator */}
+          {isFetchingNextPage && (
+            <View
+              style={{
+                height: 60,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ActivityIndicator size="small" color={t.foregroundMuted} />
             </View>
-          ))}
+          )}
         </ScrollView>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && !isError && listings.length === 0 && containerHeight > 0 && (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "GeistSans-Medium",
+              fontSize: 17,
+              color: t.foregroundMuted,
+            }}
+          >
+            No listings in your feed yet
+          </Text>
+        </View>
       )}
 
       {/* Floating header — no background, fades out after 2 listings */}
@@ -398,7 +582,7 @@ export default function FeedScreen() {
       {viewer && (
         <PhotoViewer
           listingIndex={viewer.listingIndex}
-          photoCount={viewer.photoCount}
+          photoCount={viewer.photoUrls.length || 5}
           startIndex={viewer.startIndex}
           onClose={() => setViewer(null)}
         />
