@@ -3,3 +3,7 @@ node_modules
 .expo
 dist
 *.log
+
+# Android SDK artifacts
+cmdline-tools/
+licenses/

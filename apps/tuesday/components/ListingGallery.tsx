@@ -2,13 +2,13 @@ import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
-  Image,
   Pressable,
   ScrollView,
   useWindowDimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
+import { Image } from "expo-image";
 
 /** Generates placeholder photo URLs using picsum.photos with deterministic seeds */
 function generatePlaceholderPhotos(count: number, seed: number) {
@@ -84,7 +84,10 @@ export function ListingGallery({
               <Image
                 source={{ uri: photo.uri }}
                 style={{ width, height }}
-                resizeMode="cover"
+                contentFit="cover"
+                transition={250}
+                recyclingKey={photo.id}
+                cachePolicy="memory-disk"
               />
             ) : (
               <View style={{ width, height, backgroundColor: "#111" }} />

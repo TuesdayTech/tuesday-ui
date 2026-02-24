@@ -589,8 +589,7 @@ export default function FeedScreen() {
 
       {viewer && (
         <PhotoViewer
-          listingIndex={viewer.listingIndex}
-          photoCount={viewer.photoUrls.length || 5}
+          photoUrls={viewer.photoUrls}
           startIndex={viewer.startIndex}
           onClose={() => setViewer(null)}
         />

@@ -1,62 +1,68 @@
-import React, { useRef, useEffect } from "react";
+import React, { useCallback, useRef } from "react";
 import {
   View,
   Text,
-  Image,
   Pressable,
-  ScrollView,
+  FlatList,
   useWindowDimensions,
   StatusBar,
 } from "react-native";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "phosphor-react-native";
 import { useThemeColors } from "../hooks/useThemeColors";
 
-/** Same seed logic as ListingGallery — produces matching URLs with varied aspect ratios */
-const ASPECT_RATIOS = [4 / 3, 3 / 2, 16 / 9, 1, 5 / 4, 3 / 4, 2 / 3];
-
-function generatePhotos(count: number, seed: number) {
-  return Array.from({ length: count }, (_, i) => {
-    const ratio = ASPECT_RATIOS[(seed * 3 + i * 7) % ASPECT_RATIOS.length];
-    return {
-      id: `${seed}-${i}`,
-      uri: `https://picsum.photos/seed/tuesday-${seed}-${i}/800/600`,
-      index: i,
-      aspectRatio: ratio,
-    };
-  });
-}
+// Fixed aspect ratio for consistent layout — photos fill width, height adapts
+const PHOTO_ASPECT_RATIO = 4 / 3;
+const PHOTO_GAP = 2;
 
 interface PhotoViewerProps {
-  listingIndex: number;
-  photoCount: number;
+  photoUrls: string[];
   startIndex: number;
   onClose: () => void;
 }
 
 export function PhotoViewer({
-  listingIndex,
-  photoCount,
+  photoUrls,
   startIndex,
   onClose,
 }: PhotoViewerProps) {
   const t = useThemeColors();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const scrollRef = useRef<ScrollView>(null);
-  const photos = generatePhotos(photoCount, listingIndex);
+  const photoHeight = width / PHOTO_ASPECT_RATIO;
+  const listRef = useRef<FlatList>(null);
 
-  useEffect(() => {
-    // Approximate offset — sum heights of photos before startIndex
-    let yOffset = 0;
-    for (let i = 0; i < startIndex; i++) {
-      const ratio = ASPECT_RATIOS[(listingIndex * 3 + i * 7) % ASPECT_RATIOS.length];
-      yOffset += width / ratio + 2;
-    }
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: yOffset, animated: false });
-    }, 50);
-  }, [startIndex, width, listingIndex]);
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: photoHeight + PHOTO_GAP,
+      offset: (photoHeight + PHOTO_GAP) * index,
+      index,
+    }),
+    [photoHeight],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: string }) => (
+      <View
+        style={{
+          width,
+          height: photoHeight,
+          marginBottom: PHOTO_GAP,
+          backgroundColor: "#111",
+        }}
+      >
+        <Image
+          source={{ uri: item }}
+          style={{ width, height: photoHeight }}
+          contentFit="cover"
+          transition={250}
+          cachePolicy="memory-disk"
+        />
+      </View>
+    ),
+    [width, photoHeight],
+  );
 
   return (
     <View
@@ -90,7 +96,7 @@ export function PhotoViewer({
             color: t.foreground,
           }}
         >
-          {photoCount} Photos
+          {photoUrls.length} Photos
         </Text>
         <Pressable
           onPress={onClose}
@@ -108,33 +114,20 @@ export function PhotoViewer({
         </Pressable>
       </View>
 
-      {/* Vertical photo list */}
-      <ScrollView
-        ref={scrollRef}
+      {/* Virtualized photo list */}
+      <FlatList
+        ref={listRef}
+        data={photoUrls}
+        renderItem={renderItem}
+        keyExtractor={(_, i) => String(i)}
+        getItemLayout={getItemLayout}
+        initialScrollIndex={startIndex}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
-      >
-        {photos.map((photo) => {
-          const photoHeight = width / photo.aspectRatio;
-          return (
-            <View
-              key={photo.id}
-              style={{
-                width,
-                height: photoHeight,
-                marginBottom: 2,
-                backgroundColor: "#111",
-              }}
-            >
-              <Image
-                source={{ uri: photo.uri }}
-                style={{ width, height: photoHeight }}
-                resizeMode="cover"
-              />
-            </View>
-          );
-        })}
-      </ScrollView>
+      />
     </View>
   );
 }
