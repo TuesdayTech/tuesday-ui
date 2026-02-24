@@ -170,6 +170,7 @@ export default function FeedScreen() {
   const t = useThemeColors();
   const insets = useSafeAreaInsets();
   const [containerHeight, setContainerHeight] = useState(0);
+  const [currentListingIndex, setCurrentListingIndex] = useState(0);
   const scrollY = useSharedValue(0);
   const { profile } = useAuth();
   const profileUid = profile?.UID ?? "";
@@ -199,6 +200,12 @@ export default function FeedScreen() {
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       scrollY.value = e.nativeEvent.contentOffset.y;
+
+      // Track current listing for image virtualization
+      if (containerHeight > 0) {
+        const idx = Math.round(e.nativeEvent.contentOffset.y / containerHeight);
+        setCurrentListingIndex(idx);
+      }
 
       // Prefetch next page when near the end
       if (containerHeight > 0 && hasNextPage && !isFetchingNextPage) {
@@ -349,6 +356,7 @@ export default function FeedScreen() {
                   statusEmoji={status.emoji}
                   statusText={status.label}
                   statusColor={status.color}
+                  isNearViewport={Math.abs(index - currentListingIndex) <= 1}
                   onOpenViewer={(startIndex) =>
                     setViewer({
                       listingIndex: index,

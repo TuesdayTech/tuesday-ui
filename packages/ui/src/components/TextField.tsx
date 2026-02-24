@@ -33,7 +33,7 @@ export function TextField({
       )}
       <Box
         className={cn(
-          "flex-row items-center rounded-md border bg-background-secondary px-3 h-10",
+          "flex-row items-center rounded-md border bg-background-secondary px-3 h-12",
           focused && "border-accent",
           error && "border-error",
           !focused && !error && "border-border",

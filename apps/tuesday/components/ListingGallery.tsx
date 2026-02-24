@@ -37,6 +37,8 @@ interface ListingGalleryProps {
   statusText: string;
   statusColor: string;
   onOpenViewer: (startIndex: number) => void;
+  /** When false, images are replaced with empty placeholders to save GPU memory */
+  isNearViewport?: boolean;
 }
 
 export function ListingGallery({
@@ -48,6 +50,7 @@ export function ListingGallery({
   statusText,
   statusColor,
   onOpenViewer,
+  isNearViewport = true,
 }: ListingGalleryProps) {
   const { width } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -77,11 +80,15 @@ export function ListingGallery({
             onPress={() => onOpenViewer(photo.index)}
             style={{ width, height }}
           >
-            <Image
-              source={{ uri: photo.uri }}
-              style={{ width, height }}
-              resizeMode="cover"
-            />
+            {isNearViewport ? (
+              <Image
+                source={{ uri: photo.uri }}
+                style={{ width, height }}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={{ width, height, backgroundColor: "#111" }} />
+            )}
           </Pressable>
         ))}
       </ScrollView>

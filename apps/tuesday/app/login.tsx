@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TextInput,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -94,7 +95,7 @@ export default function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <View style={{ flex: 1, paddingHorizontal: 24, justifyContent: "center" }}>
+        <Pressable onPress={Keyboard.dismiss} style={{ flex: 1, paddingHorizontal: 24, justifyContent: "center" }}>
           {/* Back button (code step only) */}
           {step === "code" && (
             <Pressable
@@ -219,7 +220,7 @@ export default function LoginScreen() {
               </Pressable>
             </View>
           )}
-        </View>
+        </Pressable>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

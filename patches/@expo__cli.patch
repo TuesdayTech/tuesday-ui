@@ -1,0 +1,13 @@
+diff --git a/build/src/start/platforms/android/adb.js b/build/src/start/platforms/android/adb.js
+index 608e5b02733951e04f336efda798e263d73cc9ba..bea01e8cdb7ec14a12334c3289a038dfa0193809 100644
+--- a/build/src/start/platforms/android/adb.js
++++ b/build/src/start/platforms/android/adb.js
+@@ -190,7 +190,7 @@ async function launchActivityAsync(device, { launchActivity, url }) {
+     return openAsync(adbArgs(device.pid, ...args));
+ }
+ async function openAppIdAsync(device, { applicationId }) {
+-    return openAsync(adbArgs(device.pid, 'shell', 'monkey', '-p', applicationId, '-c', 'android.intent.category.LAUNCHER', '1'));
++    return openAsync(adbArgs(device.pid, 'shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', applicationId));
+ }
+ async function openUrlAsync(device, { url }) {
+     return openAsync(adbArgs(device.pid, 'shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', // ADB requires ampersands to be escaped.
