@@ -62,9 +62,13 @@ async function request<T>(
   // Abort controller for timeout
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
-  const mergedSignal = signal
-    ? AbortSignal.any([signal, controller.signal])
-    : controller.signal;
+
+  // Merge external signal with timeout controller
+  // (AbortSignal.any is not available in Hermes)
+  if (signal) {
+    signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  const mergedSignal = controller.signal;
 
   if (__DEV__) {
     console.log(`[API] ${method} ${url.pathname}${url.search}`);

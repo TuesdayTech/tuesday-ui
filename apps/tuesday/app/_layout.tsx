@@ -3,6 +3,7 @@ import React from "react";
 import { View, useColorScheme } from "react-native";
 import { Slot } from "expo-router";
 import { useFonts } from "expo-font";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryProvider } from "../providers/query-provider";
 import { AuthProvider } from "../providers/auth-provider";
 
@@ -23,12 +24,14 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <QueryProvider>
-      <AuthProvider>
-        <View style={{ flex: 1, backgroundColor: isDark ? "#000000" : "#FFFFFF" }}>
-          <Slot />
-        </View>
-      </AuthProvider>
-    </QueryProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryProvider>
+        <AuthProvider>
+          <View style={{ flex: 1, backgroundColor: isDark ? "#000000" : "#FFFFFF" }}>
+            <Slot />
+          </View>
+        </AuthProvider>
+      </QueryProvider>
+    </GestureHandlerRootView>
   );
 }

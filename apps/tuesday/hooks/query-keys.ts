@@ -20,6 +20,9 @@ export const queryKeys = {
   // Search
   search: (query: string, filters?: Record<string, unknown>) =>
     ["search", query, filters] as const,
+  searchArea: (query: string) => ["search", "area", query] as const,
+  areaBoundaries: (uid: string) => ["search", "areaBoundaries", uid] as const,
+  filtersOptions: (mls: string) => ["search", "filters", mls] as const,
 
   // Notifications
   notifications: (profileUid: string) =>
