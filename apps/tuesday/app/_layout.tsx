@@ -1,7 +1,7 @@
 import "../global.css";
 import React from "react";
 import { View, useColorScheme } from "react-native";
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryProvider } from "../providers/query-provider";
@@ -28,7 +28,7 @@ export default function RootLayout() {
       <QueryProvider>
         <AuthProvider>
           <View style={{ flex: 1, backgroundColor: isDark ? "#000000" : "#FFFFFF" }}>
-            <Slot />
+            <Stack screenOptions={{ headerShown: false }} />
           </View>
         </AuthProvider>
       </QueryProvider>

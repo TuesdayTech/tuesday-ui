@@ -16,6 +16,9 @@ export const queryKeys = {
   followings: (uid: string) => ["profile", uid, "followings"] as const,
   followers: (uid: string) => ["profile", uid, "followers"] as const,
   analytics: (uid: string) => ["profile", uid, "analytics"] as const,
+  profileListings: (uid: string, sort: string) =>
+    ["profile", uid, "listings", sort] as const,
+  office: (uid: string) => ["profile", uid, "office"] as const,
 
   // Search
   search: (query: string, filters?: Record<string, unknown>) =>

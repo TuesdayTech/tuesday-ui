@@ -15,165 +15,29 @@ import Animated, {
   Extrapolation,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Rows, GearSix } from "phosphor-react-native";
 import { useThemeColors } from "../../hooks/useThemeColors";
-import { ListingGallery } from "../../components/ListingGallery";
+import { ListingDetailCard } from "../../components/listings/ListingDetailCard";
 import { PhotoViewer } from "../../components/PhotoViewer";
 import { useInfiniteFeed } from "../../hooks/use-feed";
 import { useAuth } from "../../providers/auth-provider";
-import type { Listing } from "../../types/listing";
-
-// --- Status display config ---
-// Keys match API MajorChangeType / StandardStatus values (with spaces)
-
-// Colors from SwiftUI: geistGreen, geistAmber, geistRed, accent
-const GREEN = "#2EA043";
-const AMBER = "#F5A623";
-const RED = "#E5484D";
-const ACCENT = "#0A84FF";
-
-const STATUS_CONFIG: Record<
-  string,
-  { emoji: string; label: string; color: string }
-> = {
-  // Green — active listings
-  "Active":         { emoji: "🏡", label: "ACTIVE",         color: GREEN },
-  "New Listing":    { emoji: "🚀", label: "NEW LISTING",    color: GREEN },
-  "Price Change":   { emoji: "💰", label: "PRICE CHANGE",   color: GREEN },
-  "Back On Market": { emoji: "♻️",  label: "BACK ON MARKET", color: GREEN },
-  "Coming Soon":    { emoji: "⏱️",  label: "COMING SOON",    color: GREEN },
-
-  // Amber — in process
-  "Contingent": { emoji: "🤞", label: "CONTINGENT", color: AMBER },
-  "Pending":    { emoji: "⏳", label: "PENDING",    color: AMBER },
-
-  // Accent — closed
-  "Closed": { emoji: "🔑", label: "CLOSED", color: ACCENT },
-
-  // Red — off market
-  "Expired":    { emoji: "☠️",  label: "EXPIRED",    color: RED },
-  "Canceled":   { emoji: "🚫", label: "CANCELED",   color: RED },
-  "Hold":       { emoji: "✋", label: "HOLD",       color: RED },
-  "Withdrawn":  { emoji: "🪝", label: "WITHDRAWN",  color: RED },
-  "Deleted":    { emoji: "🗑️",  label: "DELETED",    color: RED },
-  "Incomplete": { emoji: "⚠️",  label: "INCOMPLETE", color: RED },
-};
-
-const DEFAULT_STATUS = { emoji: "❓", label: "UNKNOWN", color: "#888888" };
-
-function getStatusConfig(item: Listing) {
-  // MajorChangeType is more specific (e.g. "Price Change", "Back On Market")
-  const key = item.MajorChangeType ?? item.StandardStatus;
-  if (!key) return DEFAULT_STATUS;
-  return STATUS_CONFIG[key] ?? DEFAULT_STATUS;
-}
-
-// --- Helpers to extract agent info from flat Listing fields ---
-
-interface AgentSide {
-  offices: string[];
-  agents: string[];
-}
-
-function getListingSide(item: Listing): AgentSide {
-  const offices = [item.ListAgentOfficeName, item.CoListAgentOfficeName].filter(
-    (o): o is string => !!o,
-  );
-  const agents = [item.ListAgentFullName, item.CoListAgentFullName].filter(
-    (a): a is string => !!a,
-  );
-  return { offices, agents };
-}
-
-function getBuyerSide(item: Listing): AgentSide | null {
-  const offices = [item.BuyerAgentOfficeName, item.CoBuyerAgentOfficeName].filter(
-    (o): o is string => !!o,
-  );
-  const agents = [item.BuyerAgentFullName, item.CoBuyerAgentFullName].filter(
-    (a): a is string => !!a,
-  );
-  if (agents.length === 0) return null;
-  return { offices, agents };
-}
-
-// --- Sub-components ---
-
-function AgentSection({
-  label,
-  side,
-  color,
-  nameColor,
-}: {
-  label: string;
-  side: AgentSide;
-  color: string;
-  nameColor: string;
-}) {
-  if (side.agents.length === 0) return null;
-
-  const officeLine =
-    side.offices.length > 1
-      ? `${label} ${side.offices[0]} and ${side.offices[1]}`
-      : side.offices.length === 1
-        ? `${label} ${side.offices[0]}`
-        : label;
-
-  return (
-    <View style={{ marginTop: 10 }}>
-      <Text
-        numberOfLines={1}
-        style={{ fontFamily: "GeistSans", fontSize: 15, color }}
-      >
-        {officeLine}
-      </Text>
-      <Text numberOfLines={1} style={{ fontSize: 17, marginTop: 2 }}>
-        {side.agents.length > 1 ? (
-          <>
-            <Text style={{ fontFamily: "GeistSans-SemiBold", color: nameColor }}>
-              {side.agents[0]}
-            </Text>
-            <Text style={{ fontFamily: "GeistSans-Light", color: nameColor }}>
-              {" & "}
-            </Text>
-            <Text style={{ fontFamily: "GeistSans-SemiBold", color: nameColor }}>
-              {side.agents[1]}
-            </Text>
-          </>
-        ) : (
-          <Text style={{ fontFamily: "GeistSans-SemiBold", color: nameColor }}>
-            {side.agents[0]}
-          </Text>
-        )}
-      </Text>
-    </View>
-  );
-}
-
-function formatPrice(price: number | undefined) {
-  if (!price) return "$--";
-  return "$" + price.toLocaleString("en-US");
-}
-
-function formatPpsqft(price: number | undefined, sqft: number | undefined) {
-  if (!price || !sqft || sqft === 0) return "";
-  return "$" + Math.round(price / sqft).toLocaleString("en-US") + "/sqft";
-}
-
-function formatDom(dom: number | undefined) {
-  if (dom === undefined || dom === null) return "";
-  return `${dom}`;
-}
 
 // --- Main screen ---
 
 export default function FeedScreen() {
   const t = useThemeColors();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [containerHeight, setContainerHeight] = useState(0);
   const [currentListingIndex, setCurrentListingIndex] = useState(0);
   const scrollY = useSharedValue(0);
   const { profile } = useAuth();
   const profileUid = profile?.UID ?? "";
+
+  const handleAgentPress = useCallback((uid: string) => {
+    router.push(`/agent/${uid}`);
+  }, [router]);
 
   const {
     data,
@@ -240,10 +104,6 @@ export default function FeedScreen() {
     photoUrls: string[];
     startIndex: number;
   } | null>(null);
-
-  const mapHeight = containerHeight * 0.3;
-  const galleryHeight = containerHeight * 0.3;
-  const infoHeight = containerHeight * 0.4;
 
   return (
     <View style={{ flex: 1, backgroundColor: t.background }} onLayout={onLayout}>
@@ -314,184 +174,28 @@ export default function FeedScreen() {
           scrollEventThrottle={16}
           snapToInterval={containerHeight}
         >
-          {listings.map((item, index) => {
-            const status = getStatusConfig(item);
-            const listingSide = getListingSide(item);
-            const buyerSide = getBuyerSide(item);
-            const photoUrls = item.Photos ?? [];
-            const cityState = [item.City, item.StateOrProvince]
-              .filter(Boolean)
-              .join(", ");
-
-            return (
-              <View
-                key={item.UID ?? `listing-${item.id}`}
-                style={{ height: containerHeight, backgroundColor: t.background }}
-              >
-                {/* Map Snapshot — 30% */}
-                <View
-                  style={{
-                    height: mapHeight,
-                    backgroundColor: t.backgroundSecondary,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: t.foregroundMuted,
-                      fontFamily: "GeistSans-Medium",
-                      fontSize: 13,
-                    }}
-                  >
-                    {cityState || "Unknown location"}
-                  </Text>
-                </View>
-
-                {/* Photo Gallery — 30% */}
-                <ListingGallery
-                  listingIndex={index}
-                  photoUrls={photoUrls}
-                  height={galleryHeight}
-                  statusEmoji={status.emoji}
-                  statusText={status.label}
-                  statusColor={status.color}
-                  isNearViewport={Math.abs(index - currentListingIndex) <= 1}
-                  onOpenViewer={(startIndex) =>
-                    setViewer({
-                      listingIndex: index,
-                      photoUrls,
-                      startIndex,
-                    })
-                  }
-                />
-
-                {/* Info — 40% */}
-                <View
-                  style={{
-                    height: infoHeight,
-                    backgroundColor: t.background,
-                    paddingLeft: 12,
-                    paddingTop: 16,
-                  }}
-                >
-                  {/* Price row */}
-                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontFamily: "GeistMono",
-                        fontWeight: "700",
-                        fontSize: 28,
-                        color: status.color,
-                      }}
-                    >
-                      {formatPrice(item.CurrentPrice)}
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontFamily: "GeistSans-Medium",
-                        fontSize: 17,
-                        color: t.foregroundMuted,
-                      }}
-                    >
-                      {formatPpsqft(item.CurrentPrice, item.LivingArea)}
-                    </Text>
-                  </View>
-
-                  {/* Stats row */}
-                  <Text numberOfLines={1} style={{ color: t.foreground, fontSize: 17, marginTop: 10 }}>
-                    {item.BedroomsTotal != null && (
-                      <>
-                        <Text style={{ fontFamily: "GeistSans-Bold" }}>{item.BedroomsTotal}</Text>
-                        <Text style={{ fontFamily: "GeistSans" }}> bd </Text>
-                      </>
-                    )}
-                    {item.BathroomsTotalInteger != null && (
-                      <>
-                        <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.BathroomsTotalInteger}</Text>
-                        <Text style={{ fontFamily: "GeistSans" }}> ba </Text>
-                      </>
-                    )}
-                    {item.LivingArea != null && (
-                      <>
-                        <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.LivingArea.toLocaleString()}</Text>
-                        <Text style={{ fontFamily: "GeistSans" }}> sqft </Text>
-                      </>
-                    )}
-                    {item.LotSizeSquareFeet != null && (
-                      <>
-                        <Text style={{ fontFamily: "GeistSans-Bold" }}>· {item.LotSizeSquareFeet.toLocaleString()}</Text>
-                        <Text style={{ fontFamily: "GeistSans" }}> lot sqft </Text>
-                      </>
-                    )}
-                    {item.DaysOnMarket != null && (
-                      <>
-                        <Text style={{ fontFamily: "GeistSans-Bold" }}>· {formatDom(item.DaysOnMarket)}</Text>
-                        <Text style={{ fontFamily: "GeistSans" }}> DOM</Text>
-                      </>
-                    )}
-                  </Text>
-
-                  {/* Address row */}
-                  <Text numberOfLines={1} style={{ fontSize: 17, marginTop: 10 }}>
-                    <Text style={{ fontFamily: "GeistSans-Bold", color: t.foreground }}>
-                      {item.UnparsedAddress ?? "No address"}
-                    </Text>
-                    {item.PropertySubType && (
-                      <Text style={{ fontFamily: "GeistSans-Medium", color: t.foregroundMuted }}>
-                        {"  "}{item.PropertySubType}
-                      </Text>
-                    )}
-                  </Text>
-
-                  {/* Areas row */}
-                  <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
-                    {cityState ? (
-                      <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: t.foreground, textDecorationLine: "underline" }}>
-                        {cityState}
-                      </Text>
-                    ) : null}
-                    {item.PostalCode ? (
-                      <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: t.foreground, textDecorationLine: "underline" }}>
-                        {item.PostalCode}
-                      </Text>
-                    ) : null}
-                    {item.CountyOrParish ? (
-                      <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: t.foreground, textDecorationLine: "underline" }}>
-                        {item.CountyOrParish}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  {/* Remarks */}
-                  {item.PublicRemarks && (
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontFamily: "GeistSans",
-                        fontSize: 17,
-                        color: t.foreground,
-                        marginTop: 10,
-                      }}
-                    >
-                      {item.PublicRemarks}
-                    </Text>
-                  )}
-
-                  {/* Divider */}
-                  <View style={{ height: 1, backgroundColor: t.border, marginTop: 12 }} />
-
-                  {/* Agents */}
-                  <AgentSection label="Listed by" side={listingSide} color={t.foregroundMuted} nameColor={t.foreground} />
-                  {buyerSide && (
-                    <AgentSection label="Sold by" side={buyerSide} color={t.foregroundMuted} nameColor={t.foreground} />
-                  )}
-                </View>
-              </View>
-            );
-          })}
+          {listings.map((item, index) => (
+            <ListingDetailCard
+              key={item.UID ?? `listing-${item.id}`}
+              listing={item}
+              listingIndex={index}
+              height={containerHeight}
+              isNearViewport={Math.abs(index - currentListingIndex) <= 1}
+              onOpenPhotoViewer={(startIndex) =>
+                setViewer({
+                  listingIndex: index,
+                  photoUrls: item.Photos ?? [],
+                  startIndex,
+                })
+              }
+              onAgentPress={handleAgentPress}
+              foreground={t.foreground}
+              foregroundMuted={t.foregroundMuted}
+              background={t.background}
+              backgroundSecondary={t.backgroundSecondary}
+              border={t.border}
+            />
+          ))}
 
           {/* Loading more indicator */}
           {isFetchingNextPage && (
