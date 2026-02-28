@@ -49,10 +49,16 @@ export default function FeedScreen() {
     isFetchingNextPage,
   } = useInfiniteFeed({ profileUid });
 
-  const listings = useMemo(
-    () => data?.pages.flatMap((p) => p.listings) ?? [],
-    [data],
-  );
+  const listings = useMemo(() => {
+    const all = data?.pages.flatMap((p) => p.listings) ?? [];
+    const seen = new Set<string>();
+    return all.filter((item) => {
+      const key = item.UID ?? item.id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [data]);
 
   const onLayout = useCallback(
     (e: { nativeEvent: { layout: { height: number } } }) => {
