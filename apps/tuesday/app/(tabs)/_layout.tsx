@@ -37,6 +37,7 @@ export default function TabsLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
+          freezeOnBlur: true,
           tabBarStyle: {
             backgroundColor: t.background,
             borderTopColor: t.borderSecondary,
