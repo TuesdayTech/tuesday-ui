@@ -1,6 +1,8 @@
-import React from "react";
-import { View, Text } from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, useColorScheme } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import { ListingGallery } from "../ListingGallery";
+import { ListingMarker } from "../search/ListingMarker";
 import type { Listing } from "../../types/listing";
 
 // --- Status display config ---
@@ -193,6 +195,7 @@ export function ListingDetailCard({
   backgroundSecondary,
   border,
 }: ListingDetailCardProps) {
+  const scheme = useColorScheme();
   const status = getStatusConfig(listing);
   const listingSide = getListingSide(listing);
   const buyerSide = getBuyerSide(listing);
@@ -201,6 +204,13 @@ export function ListingDetailCard({
     .filter(Boolean)
     .join(", ");
 
+  const coord = useMemo(() => {
+    const lat = parseFloat(listing.Latitude ?? "");
+    const lng = parseFloat(listing.Longitude ?? "");
+    if (isNaN(lat) || isNaN(lng)) return null;
+    return { latitude: lat, longitude: lng };
+  }, [listing.Latitude, listing.Longitude]);
+
   const mapHeight = height * 0.3;
   const galleryHeight = height * 0.3;
   const infoHeight = height * 0.4;
@@ -208,24 +218,46 @@ export function ListingDetailCard({
   return (
     <View style={{ height, backgroundColor: background }}>
       {/* Map Snapshot — 30% */}
-      <View
-        style={{
-          height: mapHeight,
-          backgroundColor: backgroundSecondary,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Text
+      {coord && isNearViewport ? (
+        <MapView
+          style={{ height: mapHeight }}
+          initialRegion={{
+            ...coord,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          }}
+          scrollEnabled={false}
+          zoomEnabled={false}
+          rotateEnabled={false}
+          pitchEnabled={false}
+          userInterfaceStyle={scheme === "dark" ? "dark" : "light"}
+          showsPointsOfInterest={false}
+          liteMode
+        >
+          <Marker coordinate={coord} anchor={{ x: 0.5, y: 1 }}>
+            <ListingMarker listing={listing} />
+          </Marker>
+        </MapView>
+      ) : (
+        <View
           style={{
-            color: foregroundMuted,
-            fontFamily: "GeistSans-Medium",
-            fontSize: 13,
+            height: mapHeight,
+            backgroundColor: backgroundSecondary,
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {cityState || "Unknown location"}
-        </Text>
-      </View>
+          <Text
+            style={{
+              color: foregroundMuted,
+              fontFamily: "GeistSans-Medium",
+              fontSize: 13,
+            }}
+          >
+            {cityState || "Unknown location"}
+          </Text>
+        </View>
+      )}
 
       {/* Photo Gallery — 30% */}
       <ListingGallery

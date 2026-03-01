@@ -1,0 +1,35 @@
+diff --git a/android/src/main/java/com/rnmaps/maps/MapMarker.java b/android/src/main/java/com/rnmaps/maps/MapMarker.java
+--- a/android/src/main/java/com/rnmaps/maps/MapMarker.java
++++ b/android/src/main/java/com/rnmaps/maps/MapMarker.java
+@@ -79,6 +79,13 @@ public class MapMarker extends MapFeature {
+
+   private boolean hasCustomMarkerView = false;
+   private final MapMarkerManager markerManager;
++
++  @Override
++  protected void onLayout(boolean changed, int l, int t, int r, int b) {
++    super.onLayout(changed, l, t, r, b);
++    if (r - l > 0) this.width = r - l;
++    if (b - t > 0) this.height = b - t;
++  }
+   private String imageUri;
+
+   private final DraweeHolder<?> logoHolder;
+diff --git a/android/src/main/java/com/rnmaps/maps/MapMarkerManager.java b/android/src/main/java/com/rnmaps/maps/MapMarkerManager.java
+--- a/android/src/main/java/com/rnmaps/maps/MapMarkerManager.java
++++ b/android/src/main/java/com/rnmaps/maps/MapMarkerManager.java
+@@ -359,8 +359,10 @@
+     @Override
+     public void updateExtraData(MapMarker view, Object extraData) {
+-        // This method is called from the shadow node with the width/height of the rendered
+-        // marker view.
++        // This method is called from the shadow node with the width/height of the rendered
++        // marker view. Values from SizeReportingShadowNode are in dp — convert to px
++        // so createDrawable() builds a correctly-sized bitmap on hdpi screens.
+         HashMap<String, Float> data = (HashMap<String, Float>) extraData;
+-        float width = data.get("width");
+-        float height = data.get("height");
++        float density = view.getResources().getDisplayMetrics().density;
++        float width = data.get("width") * density;
++        float height = data.get("height") * density;
+         view.update((int) width, (int) height);

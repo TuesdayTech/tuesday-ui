@@ -5,7 +5,9 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "clean": "turbo clean"
+    "clean": "turbo clean",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "devDependencies": {
     "turbo": "^2.3.0",
@@ -18,7 +20,14 @@
       "react-native-css": "3.0.0"
     },
     "patchedDependencies": {
-      "@expo/cli": "patches/@expo__cli.patch"
+      "@expo/cli": "patches/@expo__cli.patch",
+      "react-native-maps": "patches/react-native-maps.patch"
     }
+  },
+  "version": "1.0.0",
+  "dependencies": {
+    "expo": "~54.0.33",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }

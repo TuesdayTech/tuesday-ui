@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import MapView, { type Region } from "react-native-maps";
 import * as Location from "expo-location";
 import { useThemeColors } from "../../../hooks/useThemeColors";
@@ -27,6 +28,7 @@ export default function SearchScreen() {
 function SearchScreenContent() {
   const t = useThemeColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { profile } = useAuth();
   const { state, dispatch } = useSearchContext();
   const { searchByBox, searchImmediate } = useMapSearch();
@@ -50,6 +52,62 @@ function SearchScreenContent() {
     }),
     [mlsCoord],
   );
+
+  // Auto-load listings on tab entry (matching SwiftUI flow):
+  // 1. Show MLS fallback immediately + search listings
+  // 2. If location permission already granted → get GPS + move map
+  const hasLoadedRef = useRef(false);
+  useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+
+    const loadInitial = async () => {
+      // Step 1: Search with MLS fallback bounds immediately
+      const fallbackBounds: MapBounds = {
+        minLat: initialRegion.latitude - initialRegion.latitudeDelta / 2,
+        maxLat: initialRegion.latitude + initialRegion.latitudeDelta / 2,
+        minLng: initialRegion.longitude - initialRegion.longitudeDelta / 2,
+        maxLng: initialRegion.longitude + initialRegion.longitudeDelta / 2,
+      };
+      boundsRef.current = fallbackBounds;
+      dispatch({ type: "SET_MAP_BOUNDS", bounds: fallbackBounds });
+      searchImmediate(fallbackBounds);
+
+      // Step 2: Check if location permission is already granted (don't request)
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== "granted") return;
+
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        const { latitude, longitude } = loc.coords;
+        const delta = 0.09; // ~10km radius matching SwiftUI distance: 10000
+
+        // Animate map to user location
+        mapRef.current?.animateToRegion(
+          { latitude, longitude, latitudeDelta: delta, longitudeDelta: delta },
+          300,
+        );
+
+        // Re-search with user location bounds
+        const userBounds: MapBounds = {
+          minLat: latitude - delta / 2,
+          maxLat: latitude + delta / 2,
+          minLng: longitude - delta / 2,
+          maxLng: longitude + delta / 2,
+        };
+        boundsRef.current = userBounds;
+        dispatch({ type: "SET_MAP_BOUNDS", bounds: userBounds });
+        searchImmediate(userBounds);
+      } catch {
+        // Location unavailable — keep using MLS fallback
+      }
+    };
+
+    const timer = setTimeout(loadInitial, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch area boundaries for ALL selected locations
   const allLocationUids = useMemo(
@@ -145,10 +203,14 @@ function SearchScreenContent() {
   }, []);
 
   // Listing press (grid/map)
-  const handleListingPress = useCallback((_listing: { UID?: string }) => {
-    // TODO: navigate to listing detail when route exists
-    // router.push(`/listing/${listing.UID}`);
-  }, []);
+  const handleListingPress = useCallback(
+    (listing: { UID?: string }) => {
+      if (listing.UID) {
+        router.push(`/listing/${listing.UID}`);
+      }
+    },
+    [router],
+  );
 
   const isMap = state.viewMode === "map";
 
@@ -234,6 +296,8 @@ function SearchScreenContent() {
         visible={showSaveSheet}
         onDismiss={() => setShowSaveSheet(false)}
       />
+
+
     </View>
   );
 }

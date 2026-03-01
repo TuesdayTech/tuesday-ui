@@ -86,6 +86,79 @@ export function getMlsType(uid?: string): string {
   return "guest";
 }
 
+/** Pin config per listing status — colors from SwiftUI Colors.xcassets + ListingStatus.swift */
+export interface PinConfig {
+  bg: { light: string; dark: string };
+  text: { light: string; dark: string };
+  emoji: string;
+}
+
+export const STATUS_PIN_CONFIG: Record<string, PinConfig> = {
+  Active: {
+    bg: { light: "#00A870", dark: "#00D68F" },
+    text: { light: "#FFFFFF", dark: "#FFFFFF" },
+    emoji: "🏡",
+  },
+  ComingSoon: {
+    bg: { light: "#00A870", dark: "#00D68F" },
+    text: { light: "#FFFFFF", dark: "#FFFFFF" },
+    emoji: "⏱️",
+  },
+  Pending: {
+    bg: { light: "#F58B06", dark: "#FFA300" },
+    text: { light: "#FFFFFF", dark: "#FFFFFF" },
+    emoji: "⏳",
+  },
+  ActiveUnderContract: {
+    bg: { light: "#F58B06", dark: "#FFA300" },
+    text: { light: "#FFFFFF", dark: "#FFFFFF" },
+    emoji: "🤞",
+  },
+  Closed: {
+    bg: { light: "#000000", dark: "#000000" },
+    text: { light: "#FFFFFF", dark: "#FFFFFF" },
+    emoji: "🔑",
+  },
+  Expired: {
+    bg: { light: "#E5E5EA", dark: "#E5E5EA" },
+    text: { light: "#EE0000", dark: "#FF3333" },
+    emoji: "☠️",
+  },
+  Canceled: {
+    bg: { light: "#E5E5EA", dark: "#E5E5EA" },
+    text: { light: "#EE0000", dark: "#FF3333" },
+    emoji: "🚫",
+  },
+  Hold: {
+    bg: { light: "#E5E5EA", dark: "#E5E5EA" },
+    text: { light: "#EE0000", dark: "#FF3333" },
+    emoji: "✋",
+  },
+  Withdrawn: {
+    bg: { light: "#E5E5EA", dark: "#E5E5EA" },
+    text: { light: "#EE0000", dark: "#FF3333" },
+    emoji: "🪝",
+  },
+};
+
+const DEFAULT_PIN_CONFIG: PinConfig = {
+  bg: { light: "#000000", dark: "#000000" },
+  text: { light: "#FFFFFF", dark: "#FFFFFF" },
+  emoji: "❓",
+};
+
+/** Brighten a hex color by +0.25 per channel (capped at 1.0), return with given opacity */
+export function brightenColor(hex: string, opacity: number): string {
+  const r = Math.min(parseInt(hex.slice(1, 3), 16) + 64, 255);
+  const g = Math.min(parseInt(hex.slice(3, 5), 16) + 64, 255);
+  const b = Math.min(parseInt(hex.slice(5, 7), 16) + 64, 255);
+  return `rgba(${r},${g},${b},${opacity})`;
+}
+
+export function getPinConfig(status?: string): PinConfig {
+  return STATUS_PIN_CONFIG[status ?? ""] ?? DEFAULT_PIN_CONFIG;
+}
+
 export function getDefaultFilters(): SearchFilters {
   return {
     propertyTypesWithSubTypes: [

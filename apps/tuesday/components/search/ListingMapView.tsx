@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useMemo } from "react";
+import React, { useRef, useCallback, useMemo, useState, useEffect } from "react";
 import { useColorScheme } from "react-native";
 import MapView, {
   Marker,
@@ -7,7 +7,7 @@ import MapView, {
 } from "react-native-maps";
 import type { Listing } from "../../types/listing";
 import type { MapBounds, Coordinate } from "../../types/search";
-import { STATUS_COLORS } from "../../lib/search/constants";
+import { ListingMarker } from "./ListingMarker";
 
 interface ListingMapViewProps {
   listings: Listing[];
@@ -27,10 +27,6 @@ function listingToCoord(listing: Listing) {
   return { latitude: lat, longitude: lng };
 }
 
-function getMarkerColor(status?: string): string {
-  return STATUS_COLORS[status ?? ""] ?? "#666666";
-}
-
 export function ListingMapView({
   listings,
   initialRegion,
@@ -43,6 +39,22 @@ export function ListingMapView({
   const internalRef = useRef<MapView>(null);
   const mapRef = externalRef ?? internalRef;
   const scheme = useColorScheme();
+
+  // Track marker views until they render, then freeze for performance.
+  // When listings change, re-enable tracking briefly so the new views snapshot.
+  // Use a fingerprint of first UIDs so tracking re-enables even when count stays the same.
+  const [markersTracked, setMarkersTracked] = useState(true);
+  const listingsFingerprint = useMemo(
+    () => listings.slice(0, 8).map((l) => l.UID ?? l.id).join(","),
+    [listings],
+  );
+
+  useEffect(() => {
+    if (listings.length === 0) return;
+    setMarkersTracked(true);
+    const timer = setTimeout(() => setMarkersTracked(false), 800);
+    return () => clearTimeout(timer);
+  }, [listingsFingerprint]);
 
   const handleRegionChangeComplete = useCallback(
     (region: Region) => {
@@ -77,7 +89,7 @@ export function ListingMapView({
       showsMyLocationButton={false}
       userInterfaceStyle={scheme === "dark" ? "dark" : "light"}
     >
-      {/* Listing markers */}
+      {/* Listing markers — custom badge pins */}
       {listings.map((listing) => {
         const coord = listingToCoord(listing);
         if (!coord) return null;
@@ -85,10 +97,12 @@ export function ListingMapView({
           <Marker
             key={listing.UID ?? listing.id}
             coordinate={coord}
-            pinColor={getMarkerColor(listing.StandardStatus)}
+            anchor={{ x: 0.5, y: 1 }}
             onPress={() => onMarkerPress?.(listing)}
-            tracksViewChanges={false}
-          />
+            tracksViewChanges={markersTracked}
+          >
+            <ListingMarker listing={listing} />
+          </Marker>
         );
       })}
 
