@@ -19,6 +19,7 @@ interface ListingViewerProps {
   startIndex: number;
   onClose: () => void;
   onAgentPress?: (uid: string) => void;
+  profileUid?: string;
 }
 
 export function ListingViewer({
@@ -26,6 +27,7 @@ export function ListingViewer({
   startIndex,
   onClose,
   onAgentPress,
+  profileUid,
 }: ListingViewerProps) {
   const t = useThemeColors();
   const insets = useSafeAreaInsets();
@@ -75,6 +77,7 @@ export function ListingViewer({
           })
         }
         onAgentPress={onAgentPress}
+        profileUid={profileUid}
         foreground={t.foreground}
         foregroundMuted={t.foregroundMuted}
         background={t.background}

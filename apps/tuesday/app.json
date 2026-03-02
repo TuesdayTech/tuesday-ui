@@ -6,7 +6,14 @@
     "scheme": "tuesday",
     "userInterfaceStyle": "automatic",
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Tuesday to use the microphone for voice editing.",
+          "speechRecognitionPermission": "Allow Tuesday to use speech recognition for voice editing."
+        }
+      ]
     ],
     "ios": {
       "bundleIdentifier": "com.anonymous.tuesday",
@@ -17,11 +24,23 @@
               "NSExceptionAllowsInsecureHTTPLoads": true
             }
           }
-        }
+        },
+        "LSApplicationQueriesSchemes": [
+          "instagram-stories",
+          "instagram",
+          "fbapi",
+          "fb-messenger-share-api",
+          "fb",
+          "fbauth2",
+          "fbshareextension",
+          "twitter"
+        ],
+        "FacebookAppID": "1297197631752292"
       }
     },
     "android": {
-      "package": "com.anonymous.tuesday"
+      "package": "com.anonymous.tuesday",
+      "usesCleartextTraffic": true
     }
   }
 }

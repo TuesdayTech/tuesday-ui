@@ -3,6 +3,7 @@ import { View, Text, useColorScheme } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { ListingGallery } from "../ListingGallery";
 import { ListingMarker } from "../search/ListingMarker";
+import { ListingActionBar } from "../listing-actions";
 import type { Listing } from "../../types/listing";
 
 // --- Status display config ---
@@ -175,6 +176,7 @@ interface ListingDetailCardProps {
   isNearViewport?: boolean;
   onOpenPhotoViewer?: (startIndex: number) => void;
   onAgentPress?: (uid: string) => void;
+  profileUid?: string;
   foreground: string;
   foregroundMuted: string;
   background: string;
@@ -189,6 +191,7 @@ export function ListingDetailCard({
   isNearViewport = true,
   onOpenPhotoViewer,
   onAgentPress,
+  profileUid,
   foreground,
   foregroundMuted,
   background,
@@ -276,122 +279,134 @@ export function ListingDetailCard({
         style={{
           height: infoHeight,
           backgroundColor: background,
-          paddingLeft: 12,
-          paddingTop: 16,
+          justifyContent: "space-between",
         }}
       >
-        {/* Price row */}
-        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>
-          <Text
-            numberOfLines={1}
-            style={{
-              fontFamily: "GeistMono",
-              fontWeight: "700",
-              fontSize: 28,
-              color: status.color,
-            }}
-          >
-            {formatPrice(listing.CurrentPrice)}
+        {/* Top section: listing details */}
+        <View style={{ flex: 1, paddingLeft: 12, paddingTop: 16 }}>
+          {/* Price row */}
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontFamily: "GeistMono",
+                fontWeight: "700",
+                fontSize: 28,
+                color: status.color,
+              }}
+            >
+              {formatPrice(listing.CurrentPrice)}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontFamily: "GeistSans-Medium",
+                fontSize: 17,
+                color: foregroundMuted,
+              }}
+            >
+              {formatPpsqft(listing.CurrentPrice, listing.LivingArea)}
+            </Text>
+          </View>
+
+          {/* Stats row */}
+          <Text numberOfLines={1} style={{ color: foreground, fontSize: 17, marginTop: 10 }}>
+            {listing.BedroomsTotal != null && (
+              <>
+                <Text style={{ fontFamily: "GeistSans-Bold" }}>{listing.BedroomsTotal}</Text>
+                <Text style={{ fontFamily: "GeistSans" }}> bd </Text>
+              </>
+            )}
+            {listing.BathroomsTotalInteger != null && (
+              <>
+                <Text style={{ fontFamily: "GeistSans-Bold" }}>{"\u00B7"} {listing.BathroomsTotalInteger}</Text>
+                <Text style={{ fontFamily: "GeistSans" }}> ba </Text>
+              </>
+            )}
+            {listing.LivingArea != null && (
+              <>
+                <Text style={{ fontFamily: "GeistSans-Bold" }}>{"\u00B7"} {listing.LivingArea.toLocaleString()}</Text>
+                <Text style={{ fontFamily: "GeistSans" }}> sqft </Text>
+              </>
+            )}
+            {listing.LotSizeSquareFeet != null && (
+              <>
+                <Text style={{ fontFamily: "GeistSans-Bold" }}>{"\u00B7"} {listing.LotSizeSquareFeet.toLocaleString()}</Text>
+                <Text style={{ fontFamily: "GeistSans" }}> lot sqft </Text>
+              </>
+            )}
+            {listing.DaysOnMarket != null && (
+              <>
+                <Text style={{ fontFamily: "GeistSans-Bold" }}>{"\u00B7"} {formatDom(listing.DaysOnMarket)}</Text>
+                <Text style={{ fontFamily: "GeistSans" }}> DOM</Text>
+              </>
+            )}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{
-              fontFamily: "GeistSans-Medium",
-              fontSize: 17,
-              color: foregroundMuted,
-            }}
-          >
-            {formatPpsqft(listing.CurrentPrice, listing.LivingArea)}
+
+          {/* Address row */}
+          <Text numberOfLines={1} style={{ fontSize: 17, marginTop: 10 }}>
+            <Text style={{ fontFamily: "GeistSans-Bold", color: foreground }}>
+              {listing.UnparsedAddress ?? "No address"}
+            </Text>
+            {listing.PropertySubType && (
+              <Text style={{ fontFamily: "GeistSans-Medium", color: foregroundMuted }}>
+                {"  "}{listing.PropertySubType}
+              </Text>
+            )}
           </Text>
+
+          {/* Areas row */}
+          <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
+            {cityState ? (
+              <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}>
+                {cityState}
+              </Text>
+            ) : null}
+            {listing.PostalCode ? (
+              <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}>
+                {listing.PostalCode}
+              </Text>
+            ) : null}
+            {listing.CountyOrParish ? (
+              <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}>
+                {listing.CountyOrParish}
+              </Text>
+            ) : null}
+          </View>
+
+          {/* Remarks */}
+          {listing.PublicRemarks && (
+            <Text
+              numberOfLines={1}
+              style={{
+                fontFamily: "GeistSans",
+                fontSize: 17,
+                color: foreground,
+                marginTop: 10,
+              }}
+            >
+              {listing.PublicRemarks}
+            </Text>
+          )}
+
+          {/* Divider */}
+          <View style={{ height: 1, backgroundColor: border, marginTop: 12 }} />
+
+          {/* Agents */}
+          <AgentSection label="Listed by" side={listingSide} color={foregroundMuted} nameColor={foreground} onAgentPress={onAgentPress} />
+          {buyerSide && (
+            <AgentSection label="Sold by" side={buyerSide} color={foregroundMuted} nameColor={foreground} onAgentPress={onAgentPress} />
+          )}
         </View>
 
-        {/* Stats row */}
-        <Text numberOfLines={1} style={{ color: foreground, fontSize: 17, marginTop: 10 }}>
-          {listing.BedroomsTotal != null && (
-            <>
-              <Text style={{ fontFamily: "GeistSans-Bold" }}>{listing.BedroomsTotal}</Text>
-              <Text style={{ fontFamily: "GeistSans" }}> bd </Text>
-            </>
-          )}
-          {listing.BathroomsTotalInteger != null && (
-            <>
-              <Text style={{ fontFamily: "GeistSans-Bold" }}>{"\u00B7"} {listing.BathroomsTotalInteger}</Text>
-              <Text style={{ fontFamily: "GeistSans" }}> ba </Text>
-            </>
-          )}
-          {listing.LivingArea != null && (
-            <>
-              <Text style={{ fontFamily: "GeistSans-Bold" }}>{"\u00B7"} {listing.LivingArea.toLocaleString()}</Text>
-              <Text style={{ fontFamily: "GeistSans" }}> sqft </Text>
-            </>
-          )}
-          {listing.LotSizeSquareFeet != null && (
-            <>
-              <Text style={{ fontFamily: "GeistSans-Bold" }}>{"\u00B7"} {listing.LotSizeSquareFeet.toLocaleString()}</Text>
-              <Text style={{ fontFamily: "GeistSans" }}> lot sqft </Text>
-            </>
-          )}
-          {listing.DaysOnMarket != null && (
-            <>
-              <Text style={{ fontFamily: "GeistSans-Bold" }}>{"\u00B7"} {formatDom(listing.DaysOnMarket)}</Text>
-              <Text style={{ fontFamily: "GeistSans" }}> DOM</Text>
-            </>
-          )}
-        </Text>
-
-        {/* Address row */}
-        <Text numberOfLines={1} style={{ fontSize: 17, marginTop: 10 }}>
-          <Text style={{ fontFamily: "GeistSans-Bold", color: foreground }}>
-            {listing.UnparsedAddress ?? "No address"}
-          </Text>
-          {listing.PropertySubType && (
-            <Text style={{ fontFamily: "GeistSans-Medium", color: foregroundMuted }}>
-              {"  "}{listing.PropertySubType}
-            </Text>
-          )}
-        </Text>
-
-        {/* Areas row */}
-        <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
-          {cityState ? (
-            <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}>
-              {cityState}
-            </Text>
-          ) : null}
-          {listing.PostalCode ? (
-            <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}>
-              {listing.PostalCode}
-            </Text>
-          ) : null}
-          {listing.CountyOrParish ? (
-            <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}>
-              {listing.CountyOrParish}
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Remarks */}
-        {listing.PublicRemarks && (
-          <Text
-            numberOfLines={1}
-            style={{
-              fontFamily: "GeistSans",
-              fontSize: 17,
-              color: foreground,
-              marginTop: 10,
-            }}
-          >
-            {listing.PublicRemarks}
-          </Text>
-        )}
-
-        {/* Divider */}
-        <View style={{ height: 1, backgroundColor: border, marginTop: 12 }} />
-
-        {/* Agents */}
-        <AgentSection label="Listed by" side={listingSide} color={foregroundMuted} nameColor={foreground} onAgentPress={onAgentPress} />
-        {buyerSide && (
-          <AgentSection label="Sold by" side={buyerSide} color={foregroundMuted} nameColor={foreground} onAgentPress={onAgentPress} />
+        {/* Action Bar — pinned to bottom of info section */}
+        {profileUid && (
+          <ListingActionBar
+            listingUid={listing.UID ?? ""}
+            listing={listing}
+            profileUid={profileUid}
+            isLoading={false}
+          />
         )}
       </View>
     </View>

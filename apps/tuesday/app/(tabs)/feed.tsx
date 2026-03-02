@@ -195,6 +195,7 @@ export default function FeedScreen() {
                 })
               }
               onAgentPress={handleAgentPress}
+              profileUid={profileUid}
               foreground={t.foreground}
               foregroundMuted={t.foregroundMuted}
               background={t.background}

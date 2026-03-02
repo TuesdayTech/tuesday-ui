@@ -328,6 +328,7 @@ export default function AgentProfileScreen() {
             startIndex={listingViewer.startIndex}
             onClose={() => setListingViewer({ visible: false, startIndex: 0 })}
             onAgentPress={handleAgentPress}
+            profileUid={authProfile?.UID ?? ""}
           />
         )}
 

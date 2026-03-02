@@ -8,9 +8,9 @@ import {
   useWindowDimensions,
   useColorScheme,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { CaretLeft, ShareNetwork, Heart } from "phosphor-react-native";
+import { CaretLeft } from "phosphor-react-native";
 import MapView, { Marker } from "react-native-maps";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuth } from "../../providers/auth-provider";
@@ -18,6 +18,7 @@ import { useListing } from "../../hooks/use-listing";
 import { ListingGallery } from "../../components/ListingGallery";
 import { ListingMarker } from "../../components/search/ListingMarker";
 import { PhotoViewer } from "../../components/PhotoViewer";
+import { ListingActionBar } from "../../components/listing-actions";
 
 const STATUS_CONFIG: Record<
   string,
@@ -73,6 +74,7 @@ export default function ListingScreen() {
   const { uid } = useLocalSearchParams<{ uid: string }>();
   const { width: screenWidth } = useWindowDimensions();
   const { profile } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const scheme = useColorScheme();
   const { data: listing, isLoading } = useListing(uid ?? "", profile?.UID ?? "");
@@ -377,53 +379,25 @@ export default function ListingScreen() {
             />
           )}
 
-          {/* Action buttons */}
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 12,
-              marginTop: 20,
-              marginBottom: 40,
-            }}
-          >
-            <Pressable
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                backgroundColor: t.foreground,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                borderRadius: 20,
-              }}
-            >
-              <ShareNetwork size={18} color={t.background} weight="fill" />
-              <Text
-                style={{
-                  fontFamily: "GeistSans-SemiBold",
-                  fontSize: 15,
-                  color: t.background,
-                }}
-              >
-                Share
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: t.backgroundSecondary,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Heart size={20} color={t.foreground} />
-            </Pressable>
-          </View>
         </View>
       </ScrollView>
+
+      {/* Action Bar — pinned to bottom */}
+      <View
+        style={{
+          borderTopWidth: 1,
+          borderTopColor: t.border,
+          backgroundColor: t.background,
+          paddingBottom: insets.bottom,
+        }}
+      >
+        <ListingActionBar
+          listingUid={uid ?? ""}
+          listing={listing}
+          profileUid={profile?.UID ?? ""}
+          isLoading={false}
+        />
+      </View>
 
       {/* Photo viewer overlay */}
       {photoViewer && (

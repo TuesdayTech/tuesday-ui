@@ -4,6 +4,7 @@ import { View, useColorScheme } from "react-native";
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryProvider } from "../providers/query-provider";
 import { AuthProvider } from "../providers/auth-provider";
 
@@ -27,9 +28,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryProvider>
         <AuthProvider>
-          <View style={{ flex: 1, backgroundColor: isDark ? "#000000" : "#FFFFFF" }}>
-            <Stack screenOptions={{ headerShown: false }} />
-          </View>
+          <BottomSheetModalProvider>
+            <View style={{ flex: 1, backgroundColor: isDark ? "#000000" : "#FFFFFF" }}>
+              <Stack screenOptions={{ headerShown: false }} />
+            </View>
+          </BottomSheetModalProvider>
         </AuthProvider>
       </QueryProvider>
     </GestureHandlerRootView>

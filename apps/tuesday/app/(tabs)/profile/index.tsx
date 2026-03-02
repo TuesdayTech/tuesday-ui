@@ -351,6 +351,7 @@ export default function ProfileScreen() {
             setListingViewer({ visible: false, startIndex: 0 });
             router.push(`/agent/${uid}`);
           }}
+          profileUid={authProfile?.UID ?? ""}
         />
       )}
 

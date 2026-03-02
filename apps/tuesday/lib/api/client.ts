@@ -70,13 +70,14 @@ async function request<T>(
   }
   const mergedSignal = controller.signal;
 
+  const finalUrl = url.toString();
   if (__DEV__) {
-    console.log(`[API] ${method} ${url.pathname}${url.search}`);
+    console.log(`[API] ${method} ${finalUrl}`);
   }
 
   let response: Response;
   try {
-    response = await fetch(url.toString(), {
+    response = await fetch(finalUrl, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
@@ -84,6 +85,13 @@ async function request<T>(
     });
   } catch (error) {
     clearTimeout(timeoutId);
+    if (__DEV__) {
+      console.error(`[API] FETCH ERROR:`, {
+        name: (error as Error).name,
+        message: (error as Error).message,
+        url: finalUrl,
+      });
+    }
     if ((error as Error).name === "AbortError") {
       throw new ApiError("timeout", "Request timed out");
     }
