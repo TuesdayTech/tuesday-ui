@@ -44,7 +44,7 @@ export function ListingMapView({
 
   // Track marker views until they render, then freeze for performance.
   // When listings change, re-enable tracking briefly so the new views snapshot.
-  // Use a fingerprint of first UIDs so tracking re-enables even when count stays the same.
+  // Timeout scales with listing count — more markers need more time to render.
   const [markersTracked, setMarkersTracked] = useState(true);
   const listingsFingerprint = useMemo(
     () => listings.slice(0, 8).map((l) => l.UID ?? l.id).join(","),
@@ -54,9 +54,10 @@ export function ListingMapView({
   useEffect(() => {
     if (listings.length === 0) return;
     setMarkersTracked(true);
-    const timer = setTimeout(() => setMarkersTracked(false), 800);
+    const delay = Math.min(Math.max(800, listings.length * 20), 5000);
+    const timer = setTimeout(() => setMarkersTracked(false), delay);
     return () => clearTimeout(timer);
-  }, [listingsFingerprint]);
+  }, [listingsFingerprint, listings.length]);
 
   const handleRegionChangeComplete = useCallback(
     (region: Region) => {
@@ -90,6 +91,7 @@ export function ListingMapView({
       showsUserLocation
       showsCompass
       showsMyLocationButton={false}
+      moveOnMarkerPress={false}
       userInterfaceStyle={scheme === "dark" ? "dark" : "light"}
     >
       {/* Listing markers — custom badge pins */}

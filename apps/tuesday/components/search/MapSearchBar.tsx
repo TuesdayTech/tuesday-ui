@@ -25,6 +25,11 @@ export function MapSearchBar() {
     state.selectedLocations.length > 0 ||
     state.customBoundaryPoints.length > 0;
 
+  // Clear text when search overlay closes (e.g. after selecting a city)
+  useEffect(() => {
+    if (!isFocused) setLocalText("");
+  }, [isFocused]);
+
   // Debounce search text to provider
   useEffect(() => {
     const timer = setTimeout(() => {
