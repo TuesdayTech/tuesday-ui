@@ -3,12 +3,11 @@ import {
   View,
   Text,
   Pressable,
-  ScrollView,
+  FlatList,
   StyleSheet,
   useWindowDimensions,
   useColorScheme,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
+  type ViewToken,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { ImageSquare, Star } from "phosphor-react-native";
@@ -21,7 +20,13 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 
-function buildPhotos(photoUrls: string[] | undefined, listingIndex: number) {
+interface PhotoItem {
+  id: string;
+  uri: string;
+  index: number;
+}
+
+function buildPhotos(photoUrls: string[] | undefined, listingIndex: number): PhotoItem[] {
   if (photoUrls && photoUrls.length > 0) {
     return photoUrls.map((uri, i) => ({ id: `${listingIndex}-${i}`, uri, index: i }));
   }
@@ -38,7 +43,7 @@ function Shimmer() {
       -1,
       true,
     );
-  }, []);
+  }, [opacity]);
 
   const style = useAnimatedStyle(() => ({
     ...StyleSheet.absoluteFillObject,
@@ -50,22 +55,18 @@ function Shimmer() {
 
 interface ListingGalleryProps {
   listingIndex: number;
-  /** Real photo URLs from the API. Shows "No photo" placeholder if empty/undefined. */
   photoUrls?: string[];
   height: number;
   statusEmoji: string;
   statusText: string;
   statusColor: string;
   onOpenViewer: (startIndex: number) => void;
-  /** When false, images are replaced with empty placeholders to save GPU memory */
   isNearViewport?: boolean;
-  /** Listing type: "top_listing", "important", or undefined for normal */
   listingType?: string;
-  /** Playlist title — shown as pin text when listingType is "important" */
   playlistTitle?: string;
 }
 
-export function ListingGallery({
+export const ListingGallery = React.memo(function ListingGallery({
   listingIndex,
   photoUrls,
   height,
@@ -85,23 +86,68 @@ export function ListingGallery({
   const totalPhotos = photos.length;
   const hasPhotos = totalPhotos > 0;
 
-  // Track loaded state per photo index
-  const [loadedSet, setLoadedSet] = useState<Set<number>>(new Set());
+  // Track loaded photos with a ref to avoid re-rendering the entire list.
+  // We only force a re-render (via setCurrentLoaded) when the CURRENT photo finishes loading
+  // so we can hide its shimmer.
+  const loadedRef = useRef(new Set<number>());
+  const [currentLoaded, setCurrentLoaded] = useState(false);
+  const currentIndexRef = useRef(0);
+
   const handleImageLoad = useCallback((index: number) => {
-    setLoadedSet((prev) => {
-      const next = new Set(prev);
-      next.add(index);
-      return next;
-    });
+    loadedRef.current.add(index);
+    // Only trigger re-render if this is the currently visible photo
+    if (index === currentIndexRef.current) {
+      setCurrentLoaded(true);
+    }
   }, []);
 
-  const onScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const index = Math.round(e.nativeEvent.contentOffset.x / width);
-      setCurrentIndex(index);
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken<PhotoItem>[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        const idx = viewableItems[0].index;
+        currentIndexRef.current = idx;
+        setCurrentIndex(idx);
+        setCurrentLoaded(loadedRef.current.has(idx));
+      }
     },
+  ).current;
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
+
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: width,
+      offset: width * index,
+      index,
+    }),
     [width],
   );
+
+  const renderPhoto = useCallback(
+    ({ item }: { item: PhotoItem }) => (
+      <Pressable
+        onPress={() => onOpenViewer(item.index)}
+        style={{ width, height }}
+      >
+        {isNearViewport ? (
+          <ExpoImage
+            source={{ uri: item.uri }}
+            style={{ width, height }}
+            contentFit="cover"
+            transition={250}
+            recyclingKey={item.id}
+            cachePolicy="memory-disk"
+            onLoad={() => handleImageLoad(item.index)}
+          />
+        ) : (
+          <View style={{ width, height, backgroundColor: "#111" }} />
+        )}
+      </Pressable>
+    ),
+    [width, height, isNearViewport, onOpenViewer, handleImageLoad],
+  );
+
+  const keyExtractor = useCallback((item: PhotoItem) => item.id, []);
 
   const pinBadge = listingType === "top_listing" ? (
     <LinearGradient
@@ -136,7 +182,6 @@ export function ListingGallery({
           No photo
         </Text>
 
-        {/* Pins + Status badge row */}
         <View style={styles.badgeRow}>
           {pinBadge}
           <View style={styles.statusBadgeInline}>
@@ -152,40 +197,23 @@ export function ListingGallery({
 
   return (
     <View style={{ height, backgroundColor: "#111" }}>
-      <ScrollView
+      {/* Shimmer overlay for current photo — rendered outside FlatList for stability */}
+      {isNearViewport && !currentLoaded && <Shimmer />}
+
+      <FlatList
+        data={photos}
+        renderItem={renderPhoto}
+        keyExtractor={keyExtractor}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-      >
-        {photos.map((photo) => (
-          <Pressable
-            key={photo.id}
-            onPress={() => onOpenViewer(photo.index)}
-            style={{ width, height }}
-          >
-            {isNearViewport ? (
-              <>
-                {!loadedSet.has(photo.index) && photo.index === currentIndex && (
-                  <Shimmer />
-                )}
-                <ExpoImage
-                  source={{ uri: photo.uri }}
-                  style={{ width, height }}
-                  contentFit="cover"
-                  transition={250}
-                  recyclingKey={photo.id}
-                  cachePolicy="memory-disk"
-                  onLoad={() => handleImageLoad(photo.index)}
-                />
-              </>
-            ) : (
-              <View style={{ width, height, backgroundColor: "#111" }} />
-            )}
-          </Pressable>
-        ))}
-      </ScrollView>
+        getItemLayout={getItemLayout}
+        initialNumToRender={1}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+      />
 
       {/* Pins + Status badge row — bottom left */}
       <View style={styles.badgeRow}>
@@ -206,7 +234,7 @@ export function ListingGallery({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   badgeRow: {

@@ -1,12 +1,14 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
   Pressable,
-  ScrollView,
+  FlatList,
   ActivityIndicator,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  useColorScheme,
+  type ViewToken,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -22,6 +24,7 @@ import { ListingDetailCard } from "../../components/listings/ListingDetailCard";
 import { PhotoViewer } from "../../components/PhotoViewer";
 import { useInfiniteFeed } from "../../hooks/use-feed";
 import { useAuth } from "../../providers/auth-provider";
+import type { Listing } from "../../types/listing";
 
 // --- Main screen ---
 
@@ -29,6 +32,8 @@ export default function FeedScreen() {
   const t = useThemeColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scheme = useColorScheme();
+  const isDark = scheme === "dark";
   const [containerHeight, setContainerHeight] = useState(0);
   const [currentListingIndex, setCurrentListingIndex] = useState(0);
   const scrollY = useSharedValue(0);
@@ -46,7 +51,7 @@ export default function FeedScreen() {
     });
   }, [router]);
 
-  const handleMapPress = useCallback((listing: { Latitude?: string; Longitude?: string; StandardStatus?: string; RoundedPrice?: string; UnparsedAddress?: string }) => {
+  const handleMapPress = useCallback((listing: Listing) => {
     const lat = parseFloat(listing.Latitude ?? "");
     const lng = parseFloat(listing.Longitude ?? "");
     if (isNaN(lat) || isNaN(lng)) return;
@@ -74,7 +79,7 @@ export default function FeedScreen() {
 
   const listings = useMemo(() => {
     const all = data?.pages.flatMap((p) => p.listings) ?? [];
-    const seen = new Set<string>();
+    const seen = new Set<string | number>();
     return all.filter((item) => {
       const key = item.UID ?? item.id;
       if (seen.has(key)) return false;
@@ -90,27 +95,25 @@ export default function FeedScreen() {
     [],
   );
 
+  // Only update scrollY shared value for header fade animation.
+  // Current index tracking moved to onViewableItemsChanged (no state updates per frame).
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       scrollY.value = e.nativeEvent.contentOffset.y;
+    },
+    [scrollY],
+  );
 
-      // Track current listing for image virtualization
-      if (containerHeight > 0) {
-        const idx = Math.round(e.nativeEvent.contentOffset.y / containerHeight);
-        setCurrentListingIndex(idx);
-      }
-
-      // Prefetch next page when near the end
-      if (containerHeight > 0 && hasNextPage && !isFetchingNextPage) {
-        const contentHeight = listings.length * containerHeight;
-        const scrollOffset = e.nativeEvent.contentOffset.y + containerHeight;
-        if (scrollOffset > contentHeight - containerHeight * 2) {
-          fetchNextPage();
-        }
+  // Track current listing via viewability — fires only when the visible item actually changes.
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken<Listing>[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        setCurrentListingIndex(viewableItems[0].index);
       }
     },
-    [containerHeight, hasNextPage, isFetchingNextPage, listings.length, fetchNextPage],
-  );
+  ).current;
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
     if (containerHeight === 0) return { opacity: 1 };
@@ -133,6 +136,96 @@ export default function FeedScreen() {
     photoUrls: string[];
     startIndex: number;
   } | null>(null);
+
+  // Stable callback for opening the photo viewer — takes listingIndex + startIndex
+  // so it doesn't create a new closure per card.
+  const handleOpenPhotoViewer = useCallback(
+    (listingIndex: number, startIndex: number) => {
+      const item = listings[listingIndex];
+      if (!item) return;
+      setViewer({
+        listingIndex,
+        photoUrls: item.Photos ?? [],
+        startIndex,
+      });
+    },
+    [listings],
+  );
+
+  // FlatList config for fixed-height paging
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: containerHeight,
+      offset: containerHeight * index,
+      index,
+    }),
+    [containerHeight],
+  );
+
+  const keyExtractor = useCallback(
+    (item: Listing) => item.UID ?? `listing-${item.id}`,
+    [],
+  );
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: Listing; index: number }) => (
+      <ListingDetailCard
+        listing={item}
+        listingIndex={index}
+        height={containerHeight}
+        isNearViewport={Math.abs(index - currentListingIndex) <= 1}
+        isActive={index === currentListingIndex}
+        isDark={isDark}
+        onOpenPhotoViewer={handleOpenPhotoViewer}
+        onAgentPress={handleAgentPress}
+        onAreaPress={handleAreaPress}
+        onMapPress={handleMapPress}
+        profileUid={profileUid}
+        foreground={t.foreground}
+        foregroundMuted={t.foregroundMuted}
+        background={t.background}
+        backgroundSecondary={t.backgroundSecondary}
+        border={t.border}
+      />
+    ),
+    [
+      containerHeight,
+      currentListingIndex,
+      isDark,
+      handleOpenPhotoViewer,
+      handleAgentPress,
+      handleAreaPress,
+      handleMapPress,
+      profileUid,
+      t.foreground,
+      t.foregroundMuted,
+      t.background,
+      t.backgroundSecondary,
+      t.border,
+    ],
+  );
+
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const ListFooter = useMemo(
+    () =>
+      isFetchingNextPage ? (
+        <View
+          style={{
+            height: 60,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator size="small" color={t.foregroundMuted} />
+        </View>
+      ) : null,
+    [isFetchingNextPage, t.foregroundMuted],
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: t.background }} onLayout={onLayout}>
@@ -195,53 +288,27 @@ export default function FeedScreen() {
 
       {/* Feed */}
       {!isLoading && !isError && containerHeight > 0 && listings.length > 0 && (
-        <ScrollView
+        <FlatList
+          data={listings}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
           pagingEnabled
           showsVerticalScrollIndicator={false}
           decelerationRate="fast"
+          snapToInterval={containerHeight}
           onScroll={onScroll}
           scrollEventThrottle={16}
-          snapToInterval={containerHeight}
-        >
-          {listings.map((item, index) => (
-            <ListingDetailCard
-              key={item.UID ?? `listing-${item.id}`}
-              listing={item}
-              listingIndex={index}
-              height={containerHeight}
-              isNearViewport={Math.abs(index - currentListingIndex) <= 1}
-              onOpenPhotoViewer={(startIndex) =>
-                setViewer({
-                  listingIndex: index,
-                  photoUrls: item.Photos ?? [],
-                  startIndex,
-                })
-              }
-              onAgentPress={handleAgentPress}
-              onAreaPress={handleAreaPress}
-              onMapPress={handleMapPress}
-              profileUid={profileUid}
-              foreground={t.foreground}
-              foregroundMuted={t.foregroundMuted}
-              background={t.background}
-              backgroundSecondary={t.backgroundSecondary}
-              border={t.border}
-            />
-          ))}
-
-          {/* Loading more indicator */}
-          {isFetchingNextPage && (
-            <View
-              style={{
-                height: 60,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <ActivityIndicator size="small" color={t.foregroundMuted} />
-            </View>
-          )}
-        </ScrollView>
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={1}
+          windowSize={3}
+          maxToRenderPerBatch={2}
+          initialNumToRender={1}
+          removeClippedSubviews
+          ListFooterComponent={ListFooter}
+        />
       )}
 
       {/* Empty state */}

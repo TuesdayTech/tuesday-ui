@@ -91,7 +91,7 @@ export function ListingViewer({
         listingIndex={index}
         height={itemHeight}
         isNearViewport={Math.abs(index - currentIndex) <= 1}
-        onOpenPhotoViewer={(photoIndex) =>
+        onOpenPhotoViewer={(_listingIdx, photoIndex) =>
           setPhotoViewer({
             photoUrls: item.Photos ?? [],
             startIndex: photoIndex,

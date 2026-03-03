@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, useColorScheme } from "react-native";
+import React, { useMemo, useCallback, useState } from "react";
+import { View, Text, Pressable } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { ListingGallery } from "../ListingGallery";
 import { ListingMarker } from "../search/ListingMarker";
@@ -93,7 +93,7 @@ function formatDom(dom: number | undefined) {
 
 // --- Sub-components ---
 
-function AgentName({
+const AgentName = React.memo(function AgentName({
   agent,
   color,
   onPress,
@@ -118,9 +118,9 @@ function AgentName({
       {agent.name}
     </Text>
   );
-}
+});
 
-function AgentSection({
+const AgentSection = React.memo(function AgentSection({
   label,
   side,
   color,
@@ -165,7 +165,7 @@ function AgentSection({
       </Text>
     </View>
   );
-}
+});
 
 // --- Main component ---
 
@@ -173,8 +173,12 @@ interface ListingDetailCardProps {
   listing: Listing;
   listingIndex: number;
   height: number;
+  /** True when this card is near the viewport (adjacent cards). Used for photo loading. */
   isNearViewport?: boolean;
-  onOpenPhotoViewer?: (startIndex: number) => void;
+  /** True only for the currently visible card. Used for MapView lifecycle. */
+  isActive?: boolean;
+  isDark?: boolean;
+  onOpenPhotoViewer?: (listingIndex: number, startIndex: number) => void;
   onAgentPress?: (uid: string) => void;
   onAreaPress?: (uid: string, name?: string) => void;
   onMapPress?: (listing: Listing) => void;
@@ -186,11 +190,13 @@ interface ListingDetailCardProps {
   border: string;
 }
 
-export function ListingDetailCard({
+export const ListingDetailCard = React.memo(function ListingDetailCard({
   listing,
   listingIndex,
   height,
   isNearViewport = true,
+  isActive = false,
+  isDark = false,
   onOpenPhotoViewer,
   onAgentPress,
   onAreaPress,
@@ -202,11 +208,10 @@ export function ListingDetailCard({
   backgroundSecondary,
   border,
 }: ListingDetailCardProps) {
-  const scheme = useColorScheme();
   const status = getStatusConfig(listing);
   const listingSide = getListingSide(listing);
   const buyerSide = getBuyerSide(listing);
-  const photoUrls = listing.Photos ?? [];
+  const photoUrls = listing.Photos ?? EMPTY_PHOTOS;
   const cityState = [listing.City, listing.StateOrProvince]
     .filter(Boolean)
     .join(", ");
@@ -218,15 +223,28 @@ export function ListingDetailCard({
     return { latitude: lat, longitude: lng };
   }, [listing.Latitude, listing.Longitude]);
 
-  // Gallery needs explicit height for horizontal ScrollView items — measure via onLayout
+  // Gallery needs explicit height for FlatList items — measure via onLayout.
+  // Map and gallery share space equally (both flex: 1) so the actual height
+  // depends on how much the info section uses.
   const [galleryHeight, setGalleryHeight] = useState(height * 0.3);
+
+  const handleOpenViewer = useCallback(
+    (startIndex: number) => {
+      onOpenPhotoViewer?.(listingIndex, startIndex);
+    },
+    [onOpenPhotoViewer, listingIndex],
+  );
+
+  // Render MapView for the active card AND adjacent cards (isNearViewport = ±1).
+  // With FlatList virtualization only ~3 cards are mounted, so max 3 MapViews.
+  const showMap = isNearViewport && coord != null;
 
   return (
     <View style={{ height, backgroundColor: background }}>
       {/* Media section: map + gallery share space equally */}
       <View style={{ flex: 1, minHeight: height * 0.25 }}>
       {/* Map Snapshot */}
-      {coord && isNearViewport ? (
+      {showMap ? (
         <Pressable
           style={{ flex: 1 }}
           onPress={() => onMapPress?.(listing)}
@@ -243,7 +261,7 @@ export function ListingDetailCard({
             zoomEnabled={false}
             rotateEnabled={false}
             pitchEnabled={false}
-            userInterfaceStyle={scheme === "dark" ? "dark" : "light"}
+            userInterfaceStyle={isDark ? "dark" : "light"}
             showsPointsOfInterest={false}
             liteMode
           >
@@ -286,7 +304,7 @@ export function ListingDetailCard({
           statusText={status.label}
           statusColor={status.color}
           isNearViewport={isNearViewport}
-          onOpenViewer={(startIndex) => onOpenPhotoViewer?.(startIndex)}
+          onOpenViewer={handleOpenViewer}
           listingType={listing.type}
           playlistTitle={listing.PlaylistInfo?.playlistTitle}
         />
@@ -448,4 +466,7 @@ export function ListingDetailCard({
       </View>
     </View>
   );
-}
+});
+
+/** Stable empty array to avoid creating a new reference on every render. */
+const EMPTY_PHOTOS: string[] = [];

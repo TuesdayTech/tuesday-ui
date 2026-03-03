@@ -401,12 +401,12 @@ export function useOptimisticLike(listingUid: string, profileUid: string) {
     },
 
     onSettled: () => {
-      // Reconcile with server truth after mutation completes
+      // Reconcile with server truth for detail screen only.
+      // Feed is NOT invalidated — the optimistic update already reflects
+      // the correct state, and refetching the entire feed causes expensive
+      // re-renders of all mounted cards.
       queryClient.invalidateQueries({
         queryKey: queryKeys.listing(listingUid),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.feed(profileUid),
       });
     },
   });
