@@ -46,6 +46,10 @@ export function isVerified(profile: Profile): boolean {
   return !!profile.subscriptionUID;
 }
 
+export function isSuperAdmin(profile: Profile): boolean {
+  return profile.MemberType?.toLowerCase() === "superadmin";
+}
+
 export interface Office {
   id: number;
   UID?: string;
@@ -125,4 +129,4 @@ export interface AnalyticsTopArea {
   sellerTransactions: number;
 }
 
-export type ProfileSortOrder = "recent" | "oldest" | "highest" | "lowest";
+export type ProfileSortOrder = "recent" | "highest";

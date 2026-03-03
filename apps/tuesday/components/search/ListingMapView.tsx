@@ -17,6 +17,7 @@ interface ListingMapViewProps {
   areaBoundaries?: Array<{ latitude: number; longitude: number }[]>;
   customBoundaryPoints?: Coordinate[];
   mapRef?: React.RefObject<MapView | null>;
+  isHybrid?: boolean;
 }
 
 /** Parse listing lat/lng strings to numbers, filtering out invalid */
@@ -35,6 +36,7 @@ export function ListingMapView({
   areaBoundaries,
   customBoundaryPoints,
   mapRef: externalRef,
+  isHybrid = false,
 }: ListingMapViewProps) {
   const internalRef = useRef<MapView>(null);
   const mapRef = externalRef ?? internalRef;
@@ -83,6 +85,7 @@ export function ListingMapView({
       ref={mapRef}
       style={{ flex: 1 }}
       initialRegion={initialRegion}
+      mapType={isHybrid ? "hybrid" : "standard"}
       onRegionChangeComplete={handleRegionChangeComplete}
       showsUserLocation
       showsCompass

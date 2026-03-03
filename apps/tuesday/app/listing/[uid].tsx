@@ -91,6 +91,24 @@ export default function ListingScreen() {
     [router],
   );
 
+  const handleAreaPress = useCallback(
+    (areaUid: string, areaName?: string) => {
+      router.push({
+        pathname: "/area/[uid]",
+        params: { uid: areaUid, name: areaName },
+      });
+    },
+    [router],
+  );
+
+  const coord = useMemo(() => {
+    if (!listing) return null;
+    const lat = parseFloat(listing.Latitude ?? "");
+    const lng = parseFloat(listing.Longitude ?? "");
+    if (isNaN(lat) || isNaN(lng)) return null;
+    return { latitude: lat, longitude: lng };
+  }, [listing?.Latitude, listing?.Longitude]);
+
   if (isLoading || !listing) {
     return (
       <SafeAreaView
@@ -114,13 +132,6 @@ export default function ListingScreen() {
   const cityState = [listing.City, listing.StateOrProvince]
     .filter(Boolean)
     .join(", ");
-
-  const coord = useMemo(() => {
-    const lat = parseFloat(listing.Latitude ?? "");
-    const lng = parseFloat(listing.Longitude ?? "");
-    if (isNaN(lat) || isNaN(lng)) return null;
-    return { latitude: lat, longitude: lng };
-  }, [listing.Latitude, listing.Longitude]);
 
   const listingSide = getAgents(
     listing.ListAgentFullName,
@@ -150,24 +161,41 @@ export default function ListingScreen() {
       <ScrollView style={{ flex: 1 }} bounces>
         {/* Map snapshot */}
         {coord ? (
-          <MapView
+          <Pressable
             style={{ height: mapHeight }}
-            initialRegion={{
-              ...coord,
-              latitudeDelta: 0.005,
-              longitudeDelta: 0.005,
-            }}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
-            userInterfaceStyle={scheme === "dark" ? "dark" : "light"}
-            showsPointsOfInterest={false}
+            onPress={() =>
+              router.push({
+                pathname: "/listing-map",
+                params: {
+                  lat: String(coord.latitude),
+                  lng: String(coord.longitude),
+                  standardStatus: listing.StandardStatus ?? "Active",
+                  roundedPrice: listing.RoundedPrice ?? "",
+                  address: listing.UnparsedAddress ?? "",
+                },
+              })
+            }
           >
-            <Marker coordinate={coord} anchor={{ x: 0.5, y: 1 }}>
-              <ListingMarker listing={listing} />
-            </Marker>
-          </MapView>
+            <MapView
+              style={{ flex: 1 }}
+              pointerEvents="none"
+              initialRegion={{
+                ...coord,
+                latitudeDelta: 0.005,
+                longitudeDelta: 0.005,
+              }}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              userInterfaceStyle={scheme === "dark" ? "dark" : "light"}
+              showsPointsOfInterest={false}
+            >
+              <Marker coordinate={coord} anchor={{ x: 0.5, y: 1 }}>
+                <ListingMarker listing={listing} />
+              </Marker>
+            </MapView>
+          </Pressable>
         ) : (
           <View
             style={{
@@ -307,6 +335,7 @@ export default function ListingScreen() {
             {cityState ? (
               <Text
                 numberOfLines={1}
+                onPress={listing.CityUID ? () => handleAreaPress(listing.CityUID!, cityState) : undefined}
                 style={{
                   fontFamily: "GeistSans-Medium",
                   fontSize: 17,
@@ -320,6 +349,7 @@ export default function ListingScreen() {
             {listing.PostalCode ? (
               <Text
                 numberOfLines={1}
+                onPress={listing.PostalCodeUID ? () => handleAreaPress(listing.PostalCodeUID!, listing.PostalCode) : undefined}
                 style={{
                   fontFamily: "GeistSans-Medium",
                   fontSize: 17,

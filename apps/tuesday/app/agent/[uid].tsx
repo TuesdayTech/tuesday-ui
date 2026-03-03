@@ -270,6 +270,17 @@ export default function AgentProfileScreen() {
     [router],
   );
 
+  const handleAreaPress = useCallback(
+    (areaUid: string, areaName?: string) => {
+      setListingViewer({ visible: false, startIndex: 0 });
+      router.push({
+        pathname: "/area/[uid]",
+        params: { uid: areaUid, name: areaName },
+      });
+    },
+    [router],
+  );
+
   // --- Agent profile (scrollable) ---
   if (!isNonAgent) {
     return (
@@ -328,6 +339,7 @@ export default function AgentProfileScreen() {
             startIndex={listingViewer.startIndex}
             onClose={() => setListingViewer({ visible: false, startIndex: 0 })}
             onAgentPress={handleAgentPress}
+            onAreaPress={handleAreaPress}
             profileUid={authProfile?.UID ?? ""}
           />
         )}
@@ -357,13 +369,14 @@ export default function AgentProfileScreen() {
             {renderMainInfo()}
             {renderNameSection()}
 
-            <ProfileBio bio={profile?.MemberBio} isLoading={isProfileLoading} />
+            <ProfileBio bio={profile?.MemberBio} isLoading={isProfileLoading} isNonAgent />
 
             <ProfileLinks
               phone={profile?.MemberMobilePhone}
               email={profile?.MemberEmail}
               socialLinks={profile?.MemberSocialMedia}
               isLoading={isProfileLoading}
+              isNonAgent
               onSocialLinksTap={() => setSocialLinksVisible(true)}
             />
 

@@ -47,7 +47,7 @@ export function ProfileStats({
   isLoading,
 }: ProfileStatsProps) {
   const t = useThemeColors();
-  const accentColor = "#0A84FF";
+  const accentColor = t.foreground;
 
   if (isLoading) {
     return (

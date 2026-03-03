@@ -5,9 +5,10 @@ import { useThemeColors } from "../../hooks/useThemeColors";
 interface ProfileBioProps {
   bio?: string;
   isLoading?: boolean;
+  isNonAgent?: boolean;
 }
 
-export function ProfileBio({ bio, isLoading }: ProfileBioProps) {
+export function ProfileBio({ bio, isLoading, isNonAgent }: ProfileBioProps) {
   const t = useThemeColors();
 
   if (isLoading) {
@@ -38,7 +39,7 @@ export function ProfileBio({ bio, isLoading }: ProfileBioProps) {
         style={{
           fontFamily: "GeistSans",
           fontSize: 16,
-          color: t.foreground,
+          color: isNonAgent ? "#FFFFFF" : t.foreground,
           lineHeight: 22,
         }}
       >

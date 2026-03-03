@@ -4,6 +4,7 @@ export type ApiErrorCode =
   | "server_error"
   | "network_error"
   | "timeout"
+  | "aborted"
   | "unknown";
 
 export class ApiError extends Error {

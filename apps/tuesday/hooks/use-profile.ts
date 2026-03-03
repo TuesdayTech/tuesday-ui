@@ -36,6 +36,11 @@ export function useOwnProfile(uid: string, enabled = true) {
   });
 }
 
+const SORT_API_VALUE: Record<ProfileSortOrder, string> = {
+  recent: "Recent",
+  highest: "CurrentPrice",
+};
+
 export function useProfileListings(
   uid: string,
   sort: ProfileSortOrder = "recent",
@@ -50,7 +55,7 @@ export function useProfileListings(
           profileUID: uid,
           limit: FEED_PAGE_SIZE,
           offset: pageParam,
-          filters: { orderFilter: sort },
+          filters: { orderFilter: SORT_API_VALUE[sort] },
         },
         requiresAuth: true,
         responseKey: null,
@@ -173,6 +178,37 @@ export function useDeleteProfileMutation() {
         requiresAuth: true,
         responseKey: null,
       }),
+  });
+}
+
+export function useSwitchMLSMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      profileUid,
+      mlsType,
+    }: {
+      profileUid: string;
+      mlsType: string;
+    }) =>
+      api.request<{ token: string; message: Profile }>("auth/mlsSwitch", {
+        method: "PATCH",
+        body: { profileUID: profileUid, mlsType },
+        requiresAuth: true,
+        responseKey: null,
+      }),
+    onSuccess: (data, { profileUid }) => {
+      const newUid = data.message.UID;
+      // Remove stale queries keyed by old UID
+      queryClient.removeQueries({ queryKey: queryKeys.profile(profileUid) });
+      queryClient.removeQueries({ queryKey: queryKeys.feed(profileUid) });
+      // Invalidate new UID queries so they refetch
+      if (newUid && newUid !== profileUid) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile(newUid) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.feed(newUid) });
+      }
+    },
   });
 }
 

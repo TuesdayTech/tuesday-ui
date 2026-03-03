@@ -36,12 +36,13 @@ export interface ScheduleShowingResponse {
 // ─── Comments ────────────────────────────────────────────────────────
 
 export interface CommentProfile {
-  uid: string;
-  memberFullName: string;
-  media: string;
-  officeID: number;
-  officeUID: string;
-  officeName: string;
+  UID: string;
+  MemberFullName: string;
+  Media: string;
+  isUser?: boolean;
+  OfficeID: number;
+  OfficeUID: string;
+  OfficeName: string;
 }
 
 export interface Comment {

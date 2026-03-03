@@ -4,19 +4,19 @@ import {
   Text,
   Pressable,
   TextInput,
-  ScrollView,
   ActivityIndicator,
   Alert,
   Keyboard,
   ActionSheetIOS,
   Platform,
 } from "react-native";
-import { BottomSheetModal, BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetBackdrop, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { XCircle, ArrowBendUpRight, Trash } from "phosphor-react-native";
 import { Image } from "expo-image";
 import * as ExpoClipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useThemeColors } from "../../hooks/useThemeColors";
+import { useAuth } from "../../hooks/use-auth";
 import {
   useComments,
   useCreateComment,
@@ -105,8 +105,8 @@ function CommentRow({
 }: CommentRowProps) {
   const avatarSize = isReply ? 32 : 40;
   const profile = comment.profile;
-  const initial = profile?.memberFullName?.charAt(0) ?? "?";
-  const hasAvatar = !!profile?.media;
+  const initial = profile?.MemberFullName?.charAt(0) ?? "?";
+  const hasAvatar = !!profile?.Media;
 
   // Context menu on long press
   const handleLongPress = useCallback(() => {
@@ -182,7 +182,7 @@ function CommentRow({
       >
         {hasAvatar ? (
           <Image
-            source={{ uri: profile.media }}
+            source={{ uri: profile.Media }}
             style={{ width: avatarSize, height: avatarSize }}
             contentFit="cover"
           />
@@ -212,9 +212,9 @@ function CommentRow({
               flexShrink: 0,
             }}
           >
-            {profile?.memberFullName ?? "Unknown"}
+            {profile?.MemberFullName ?? "Unknown"}
           </Text>
-          {profile?.officeName && (
+          {profile?.OfficeName && (
             <Text
               numberOfLines={1}
               style={{
@@ -225,7 +225,7 @@ function CommentRow({
               }}
             >
               {" \u00B7 "}
-              {profile.officeName}
+              {profile.OfficeName}
             </Text>
           )}
           <View style={{ flexShrink: 0 }}>
@@ -478,7 +478,8 @@ function CommentInput({
   t,
 }: CommentInputProps) {
   const [text, setText] = useState("");
-  const createMutation = useCreateComment();
+  const { profile: authProfile } = useAuth();
+  const createMutation = useCreateComment(authProfile);
   const inputRef = useRef<TextInput>(null);
   const mentionSearch = useMentionSearch();
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -630,7 +631,7 @@ function CommentInput({
             }}
             numberOfLines={1}
           >
-            {replyTo.profile?.memberFullName ?? "Unknown"}
+            {replyTo.profile?.MemberFullName ?? "Unknown"}
           </Text>
           <Pressable onPress={onClearReply} hitSlop={8}>
             <XCircle size={16} color={t.foregroundMuted} weight="fill" />
@@ -717,7 +718,7 @@ export function CommentsSheet({
   onCommentsCountChange,
 }: CommentsSheetProps) {
   const t = useThemeColors();
-  const snapPoints = useMemo(() => ["50%", "95%"], []);
+  const snapPoints = useMemo(() => ["80%"], []);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -813,8 +814,7 @@ export function CommentsSheet({
       }}
       handleIndicatorStyle={{ backgroundColor: t.foregroundMuted }}
     >
-      <BottomSheetView style={{ flex: 1 }}>
-        <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         {/* Header */}
         <View
           style={{
@@ -856,7 +856,7 @@ export function CommentsSheet({
 
         <View style={{ height: 1, backgroundColor: t.border }} />
 
-        {/* Content */}
+        {/* Content — fills all available space between header and input */}
         {isLoading ? (
           <View
             style={{
@@ -909,7 +909,7 @@ export function CommentsSheet({
             </Text>
           </View>
         ) : (
-          <ScrollView
+          <BottomSheetScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingVertical: 8 }}
             keyboardShouldPersistTaps="handled"
@@ -925,7 +925,7 @@ export function CommentsSheet({
                 onDelete={handleDelete}
               />
             ))}
-          </ScrollView>
+          </BottomSheetScrollView>
         )}
 
         {/* Input — pinned to bottom */}
@@ -938,8 +938,7 @@ export function CommentsSheet({
           mentionUidMap={mentionUidMap}
           t={t}
         />
-        </View>
-      </BottomSheetView>
+      </View>
     </BottomSheetModal>
   );
 }

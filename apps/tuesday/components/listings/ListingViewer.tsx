@@ -1,13 +1,13 @@
 import React, { useCallback, useRef, useState } from "react";
 import {
   View,
-  Text,
   Pressable,
   FlatList,
   useWindowDimensions,
   StatusBar,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { X } from "phosphor-react-native";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ListingDetailCard } from "./ListingDetailCard";
@@ -19,6 +19,7 @@ interface ListingViewerProps {
   startIndex: number;
   onClose: () => void;
   onAgentPress?: (uid: string) => void;
+  onAreaPress?: (uid: string, name?: string) => void;
   profileUid?: string;
 }
 
@@ -27,21 +28,41 @@ export function ListingViewer({
   startIndex,
   onClose,
   onAgentPress,
+  onAreaPress,
   profileUid,
 }: ListingViewerProps) {
   const t = useThemeColors();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const listRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(startIndex);
 
-  // Each listing item takes full screen minus safe area top
-  const itemHeight = screenHeight - insets.top;
-
   const [photoViewer, setPhotoViewer] = useState<{
     photoUrls: string[];
     startIndex: number;
   } | null>(null);
+
+  const handleMapPress = useCallback(
+    (listing: Listing) => {
+      const lat = parseFloat(listing.Latitude ?? "");
+      const lng = parseFloat(listing.Longitude ?? "");
+      if (isNaN(lat) || isNaN(lng)) return;
+      router.push({
+        pathname: "/listing-map",
+        params: {
+          lat: String(lat),
+          lng: String(lng),
+          standardStatus: listing.StandardStatus ?? "Active",
+          roundedPrice: listing.RoundedPrice ?? "",
+          address: listing.UnparsedAddress ?? "",
+        },
+      });
+    },
+    [router],
+  );
+
+  const itemHeight = screenHeight;
 
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
@@ -77,6 +98,8 @@ export function ListingViewer({
           })
         }
         onAgentPress={onAgentPress}
+        onAreaPress={onAreaPress}
+        onMapPress={handleMapPress}
         profileUid={profileUid}
         foreground={t.foreground}
         foregroundMuted={t.foregroundMuted}
@@ -102,45 +125,7 @@ export function ListingViewer({
     >
       <StatusBar barStyle="light-content" />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingTop: insets.top + 8,
-          paddingHorizontal: 16,
-          paddingBottom: 8,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: t.background,
-          zIndex: 10,
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: "GeistSans-SemiBold",
-            fontSize: 18,
-            color: t.foreground,
-          }}
-        >
-          {currentIndex + 1} of {listings.length}
-        </Text>
-        <Pressable
-          onPress={onClose}
-          hitSlop={8}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            backgroundColor: t.backgroundSecondary,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <X size={20} color={t.foreground} weight="bold" />
-        </Pressable>
-      </View>
-
-      {/* Listings list */}
+      {/* Full-screen listings list */}
       <FlatList
         ref={listRef}
         data={listings}
@@ -156,6 +141,26 @@ export function ListingViewer({
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
       />
+
+      {/* Floating close button */}
+      <Pressable
+        onPress={onClose}
+        hitSlop={8}
+        style={{
+          position: "absolute",
+          top: insets.top + 8,
+          right: 16,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: "rgba(0,0,0,0.4)",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10,
+        }}
+      >
+        <X size={20} color="#FFFFFF" weight="bold" />
+      </Pressable>
 
       {/* Photo viewer overlay */}
       {photoViewer && (

@@ -12,7 +12,7 @@ interface ListingGridCardProps {
 
 export function ListingGridCard({ listing, size, onPress }: ListingGridCardProps) {
   const photo = listing.PreferredPhoto ?? listing.Photos?.[0];
-  const status = listing.StandardStatus ?? "";
+  const status = listing.MajorChangeType ?? listing.StandardStatus ?? "";
   const statusColor = STATUS_COLORS[status] ?? "#666666";
   const statusEmoji = STATUS_EMOJI[status] ?? "";
   const priceLabel = listing.RoundedPrice ?? "";

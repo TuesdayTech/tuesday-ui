@@ -15,6 +15,7 @@ import type {
   ShareType,
 } from "../types/listing-actions";
 import type { Listing } from "../types/listing";
+import type { Profile } from "../types/profile";
 
 // ─── Share Link ──────────────────────────────────────────────────────
 
@@ -173,7 +174,7 @@ export function useComments(listingUid: string, profileUid: string, enabled = fa
 
 let tempCommentId = 0;
 
-export function useCreateComment() {
+export function useCreateComment(currentUserProfile?: Profile | null) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -198,7 +199,16 @@ export function useCreateComment() {
         id: --tempCommentId, // Negative ID = temporary
         listingUID: payload.listingUID,
         profileUID: payload.profileUID,
-        profile: null,
+        profile: currentUserProfile
+          ? {
+              UID: currentUserProfile.UID ?? payload.profileUID,
+              MemberFullName: currentUserProfile.MemberFullName ?? "Unknown",
+              Media: currentUserProfile.Media ?? "",
+              OfficeID: currentUserProfile.id ?? 0,
+              OfficeUID: currentUserProfile.OfficeUID ?? "",
+              OfficeName: currentUserProfile.OfficeName ?? "",
+            }
+          : null,
         body: payload.comment,
         replyID: payload.replyID ?? null,
         status: payload.status,
@@ -207,9 +217,9 @@ export function useCreateComment() {
         updatedAt: new Date().toISOString(),
         listingUnparsedAddress: null,
         listingPreferredPhoto: null,
-        officeID: null,
-        officeUID: null,
-        officeName: null,
+        officeID: currentUserProfile?.id ?? null,
+        officeUID: currentUserProfile?.OfficeUID ?? null,
+        officeName: currentUserProfile?.OfficeName ?? null,
       };
 
       queryClient.setQueryData<Comment[]>(

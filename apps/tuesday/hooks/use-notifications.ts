@@ -1,17 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api/client";
 import { queryKeys } from "./query-keys";
-
-interface Notification {
-  id: number;
-  UID?: string;
-  profileUID?: string;
-  type?: string;
-  title?: string;
-  body?: string;
-  isViewed?: boolean;
-  createdAt?: string;
-}
+import type { Notification } from "../types/notification";
 
 export function useNotifications(profileUid: string, enabled = true) {
   return useQuery({
@@ -37,5 +27,55 @@ export function useUnreadCount(profileUid: string, enabled = true) {
       }),
     enabled: enabled && !!profileUid,
     refetchInterval: 60 * 1000, // Poll every 60s
+  });
+}
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      profileUid,
+      notificationId,
+    }: {
+      profileUid: string;
+      notificationId: number;
+    }) =>
+      api.request<string>("notifications/delete", {
+        method: "DELETE",
+        body: { profileUID: profileUid, notificationID: notificationId },
+        requiresAuth: true,
+        responseKey: "message",
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications(variables.profileUid),
+      });
+    },
+  });
+}
+
+export function useMarkNotificationsViewed() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      profileUid,
+      notificationIds,
+    }: {
+      profileUid: string;
+      notificationIds: number[];
+    }) =>
+      api.request("notifications/viewed", {
+        method: "POST",
+        body: { profileUID: profileUid, notificationIDs: notificationIds },
+        requiresAuth: true,
+        responseKey: "message",
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.unreadCount(variables.profileUid),
+      });
+    },
   });
 }

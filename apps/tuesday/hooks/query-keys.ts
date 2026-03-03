@@ -36,7 +36,13 @@ export const queryKeys = {
   // Playlists
   playlists: (profileUid: string) => ["playlists", profileUid] as const,
   playlist: (uid: string) => ["playlist", uid] as const,
-  playlistListings: (uid: string) => ["playlist", uid, "listings"] as const,
+  playlistListings: (uid: string, sort?: string) =>
+    ["playlist", uid, "listings", sort] as const,
+
+  // Areas
+  area: (uid: string) => ["area", uid] as const,
+  areaListings: (uid: string, sort: string) =>
+    ["area", uid, "listings", sort] as const,
 
   // Comments
   comments: (listingUid: string) => ["comments", listingUid] as const,

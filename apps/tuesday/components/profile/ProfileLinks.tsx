@@ -14,6 +14,7 @@ interface ProfileLinksProps {
   email?: string;
   socialLinks?: string[];
   isLoading?: boolean;
+  isNonAgent?: boolean;
   onSocialLinksTap?: () => void;
 }
 
@@ -22,10 +23,12 @@ export function ProfileLinks({
   email,
   socialLinks,
   isLoading,
+  isNonAgent,
   onSocialLinksTap,
 }: ProfileLinksProps) {
   const t = useThemeColors();
-  const accent = "#0A84FF";
+  const textColor = isNonAgent ? "#FFFFFF" : t.foreground;
+  const linkColor = "#0A84FF";
 
   const handlePhoneTap = () => {
     if (!phone) return;
@@ -92,7 +95,7 @@ export function ProfileLinks({
             style={{
               fontFamily: "GeistSans-Medium",
               fontSize: 15,
-              color: t.foreground,
+              color: textColor,
               textDecorationLine: "underline",
             }}
           >
@@ -107,7 +110,7 @@ export function ProfileLinks({
             style={{
               fontFamily: "GeistSans-Medium",
               fontSize: 15,
-              color: t.foreground,
+              color: textColor,
               textDecorationLine: "underline",
             }}
           >
@@ -121,13 +124,13 @@ export function ProfileLinks({
           onPress={onSocialLinksTap}
           style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}
         >
-          <LinkIcon size={16} color={accent} weight="bold" />
+          <LinkIcon size={16} color={linkColor} weight="bold" />
           <Text
             numberOfLines={1}
             style={{
               fontFamily: "GeistSans-SemiBold",
               fontSize: 15,
-              color: accent,
+              color: linkColor,
             }}
           >
             {cleanUrl(primaryLink)}

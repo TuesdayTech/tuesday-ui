@@ -24,27 +24,41 @@ export const ALL_STATUSES = [
 ];
 
 export const STATUS_EMOJI: Record<string, string> = {
-  Active: "\u{1F7E2}",
-  ComingSoon: "\u{1F535}",
-  Pending: "\u{1F7E1}",
-  ActiveUnderContract: "\u{1F7E0}",
-  Closed: "\u{26AB}",
-  Withdrawn: "\u{1F534}",
-  Hold: "\u{1F7E3}",
-  Canceled: "\u{274C}",
-  Expired: "\u{23F0}",
+  Active: "🏡",
+  ComingSoon: "⏱️",
+  "Coming Soon": "⏱️",
+  Pending: "⏳",
+  ActiveUnderContract: "🤞",
+  Contingent: "🤞",
+  Closed: "🔑",
+  Withdrawn: "🪝",
+  Hold: "✋",
+  Canceled: "🚫",
+  Expired: "☠️",
+  "New Listing": "🚀",
+  "Price Change": "💰",
+  "Back On Market": "♻️",
+  Deleted: "🗑️",
+  Incomplete: "⚠️",
 };
 
 export const STATUS_COLORS: Record<string, string> = {
   Active: "#2EA043",
-  ComingSoon: "#0A84FF",
+  ComingSoon: "#2EA043",
+  "Coming Soon": "#2EA043",
   Pending: "#F5A623",
   ActiveUnderContract: "#FF9500",
-  Closed: "#333333",
+  Contingent: "#F5A623",
+  Closed: "#000000",
   Withdrawn: "#E5484D",
-  Hold: "#8B5CF6",
+  Hold: "#E5484D",
   Canceled: "#E5484D",
   Expired: "#E5484D",
+  "New Listing": "#2EA043",
+  "Price Change": "#2EA043",
+  "Back On Market": "#2EA043",
+  Deleted: "#E5484D",
+  Incomplete: "#E5484D",
 };
 
 /** MLS-based initial map coordinates */
@@ -100,6 +114,11 @@ export const STATUS_PIN_CONFIG: Record<string, PinConfig> = {
     emoji: "🏡",
   },
   ComingSoon: {
+    bg: { light: "#00A870", dark: "#00D68F" },
+    text: { light: "#FFFFFF", dark: "#FFFFFF" },
+    emoji: "⏱️",
+  },
+  "Coming Soon": {
     bg: { light: "#00A870", dark: "#00D68F" },
     text: { light: "#FFFFFF", dark: "#FFFFFF" },
     emoji: "⏱️",

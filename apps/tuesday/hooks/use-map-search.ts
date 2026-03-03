@@ -1,10 +1,18 @@
 import { useRef, useCallback } from "react";
 import { api } from "../lib/api/client";
+import { ApiError } from "../lib/api/errors";
 import { buildSearchBody } from "../lib/search/filters";
 import { MAP_PAGINATION_LIMIT } from "../lib/search/constants";
 import { useSearchContext } from "../providers/search-provider";
 import { useAuth } from "../providers/auth-provider";
 import type { MapSearchResult, MapBounds } from "../types/search";
+
+/** Check if an error is a deliberate cancellation (not a real failure). */
+function isCancellation(err: unknown): boolean {
+  if (err instanceof ApiError && err.code === "aborted") return true;
+  if ((err as Error).name === "AbortError") return true;
+  return false;
+}
 
 /**
  * Imperative hook for map-based listing search.
@@ -59,7 +67,7 @@ export function useMapSearch() {
             });
           }
         } catch (err) {
-          if ((err as Error).name !== "AbortError") {
+          if (!isCancellation(err)) {
             if (__DEV__) console.warn("[useMapSearch] error:", err);
           }
         } finally {
@@ -119,7 +127,7 @@ export function useMapSearch() {
           });
         }
       } catch (err) {
-        if ((err as Error).name !== "AbortError") {
+        if (!isCancellation(err)) {
           if (__DEV__) console.warn("[useMapSearch] error:", err);
         }
       } finally {

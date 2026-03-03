@@ -40,10 +40,10 @@ function SearchScreenContent() {
   const boundsRef = useRef<MapBounds | null>(null);
   const currentRegionRef = useRef<Region | null>(null);
 
-  // Compute initial region from MLS
+  // MLS fallback region (used when GPS is unavailable)
   const mlsType = getMlsType(profile?.UID);
   const mlsCoord = MLS_COORDINATES[mlsType] ?? DEFAULT_REGION;
-  const initialRegion = useMemo(
+  const mlsFallbackRegion = useMemo(
     () => ({
       latitude: mlsCoord.lat,
       longitude: mlsCoord.lng,
@@ -53,61 +53,73 @@ function SearchScreenContent() {
     [mlsCoord],
   );
 
-  // Auto-load listings on tab entry (matching SwiftUI flow):
-  // 1. Show MLS fallback immediately + search listings
-  // 2. If location permission already granted → get GPS + move map
+  // Resolve initial location BEFORE rendering the map (no visible animation).
+  // GPS (if already permitted) → MLS fallback.
+  const [resolvedRegion, setResolvedRegion] = useState<Region | null>(null);
   const hasLoadedRef = useRef(false);
   useEffect(() => {
     if (hasLoadedRef.current) return;
     hasLoadedRef.current = true;
 
-    const loadInitial = async () => {
-      // Step 1: Search with MLS fallback bounds immediately
-      const fallbackBounds: MapBounds = {
-        minLat: initialRegion.latitude - initialRegion.latitudeDelta / 2,
-        maxLat: initialRegion.latitude + initialRegion.latitudeDelta / 2,
-        minLng: initialRegion.longitude - initialRegion.longitudeDelta / 2,
-        maxLng: initialRegion.longitude + initialRegion.longitudeDelta / 2,
-      };
-      boundsRef.current = fallbackBounds;
-      dispatch({ type: "SET_MAP_BOUNDS", bounds: fallbackBounds });
-      searchImmediate(fallbackBounds);
+    const resolve = async () => {
+      let region = mlsFallbackRegion;
 
-      // Step 2: Check if location permission is already granted (don't request)
       try {
         const { status } = await Location.getForegroundPermissionsAsync();
-        if (status !== "granted") return;
-
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        const { latitude, longitude } = loc.coords;
-        const delta = 0.09; // ~10km radius matching SwiftUI distance: 10000
-
-        // Animate map to user location
-        mapRef.current?.animateToRegion(
-          { latitude, longitude, latitudeDelta: delta, longitudeDelta: delta },
-          300,
-        );
-
-        // Re-search with user location bounds
-        const userBounds: MapBounds = {
-          minLat: latitude - delta / 2,
-          maxLat: latitude + delta / 2,
-          minLng: longitude - delta / 2,
-          maxLng: longitude + delta / 2,
-        };
-        boundsRef.current = userBounds;
-        dispatch({ type: "SET_MAP_BOUNDS", bounds: userBounds });
-        searchImmediate(userBounds);
+        if (status === "granted") {
+          // Try cached location first (near-instant)
+          const cached = await Location.getLastKnownPositionAsync();
+          if (cached) {
+            const delta = 0.09;
+            region = {
+              latitude: cached.coords.latitude,
+              longitude: cached.coords.longitude,
+              latitudeDelta: delta,
+              longitudeDelta: delta,
+            };
+          } else {
+            // Active GPS with 3s timeout so the map doesn't hang
+            const fresh = await Promise.race([
+              Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced,
+              }),
+              new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+            ]);
+            if (fresh) {
+              const delta = 0.09;
+              region = {
+                latitude: fresh.coords.latitude,
+                longitude: fresh.coords.longitude,
+                latitudeDelta: delta,
+                longitudeDelta: delta,
+              };
+            }
+          }
+        }
       } catch {
-        // Location unavailable — keep using MLS fallback
+        // Location unavailable — keep MLS fallback
       }
+
+      currentRegionRef.current = region;
+      setResolvedRegion(region);
+
+      const bounds: MapBounds = {
+        minLat: region.latitude - region.latitudeDelta / 2,
+        maxLat: region.latitude + region.latitudeDelta / 2,
+        minLng: region.longitude - region.longitudeDelta / 2,
+        maxLng: region.longitude + region.longitudeDelta / 2,
+      };
+      boundsRef.current = bounds;
+      dispatch({ type: "SET_MAP_BOUNDS", bounds });
+      searchImmediate(bounds);
     };
 
-    const timer = setTimeout(loadInitial, 100);
-    return () => clearTimeout(timer);
+    resolve();
   }, []);
+
+  // Region for map components: current view position → resolved GPS/MLS → fallback
+  const effectiveInitialRegion =
+    currentRegionRef.current ?? resolvedRegion ?? mlsFallbackRegion;
 
   // Fetch area boundaries for ALL selected locations
   const allLocationUids = useMemo(
@@ -214,30 +226,19 @@ function SearchScreenContent() {
 
   const isMap = state.viewMode === "map";
 
-  // Full-screen boundary drawer takes over the screen
-  if (showBoundaryDrawer) {
-    return (
-      <CustomBoundaryView
-        initialPoints={state.customBoundaryPoints}
-        initialRegion={currentRegionRef.current ?? initialRegion}
-        onSave={handleBoundarySave}
-        onCancel={handleBoundaryCancel}
-      />
-    );
-  }
-
   return (
     <View style={{ flex: 1, backgroundColor: t.background }}>
-      {/* Map layer */}
-      {isMap && (
+      {/* Map layer — always mounted, stays alive under boundary drawer */}
+      {isMap && resolvedRegion && (
         <ListingMapView
           listings={state.listings}
-          initialRegion={initialRegion}
+          initialRegion={effectiveInitialRegion}
           onRegionChange={handleRegionChange}
           onMarkerPress={handleListingPress}
           areaBoundaries={areaBoundaries.length > 0 ? areaBoundaries : undefined}
           customBoundaryPoints={state.customBoundaryPoints}
           mapRef={mapRef}
+          isHybrid={isHybrid}
         />
       )}
 
@@ -251,18 +252,18 @@ function SearchScreenContent() {
       )}
 
       {/* Search overlay (blurred background when search is focused) */}
-      {state.isSearchFocused && (
+      {state.isSearchFocused && !showBoundaryDrawer && (
         <SearchOverlay onCenterLocation={handleCenterUserLocation} />
       )}
 
-      {/* Top search bar */}
-      <MapSearchBar />
+      {/* Top search bar — hidden during boundary drawing */}
+      {!showBoundaryDrawer && <MapSearchBar />}
 
-      {/* Filter pills — below search bar, only when filters active and not searching */}
-      {!state.isSearchFocused && <FilterPills />}
+      {/* Filter pills — hidden during boundary drawing */}
+      {!state.isSearchFocused && !showBoundaryDrawer && <FilterPills />}
 
-      {/* Map controls */}
-      {isMap && !state.isSearchFocused && (
+      {/* Map controls — hidden during boundary drawing */}
+      {isMap && !state.isSearchFocused && !showBoundaryDrawer && (
         <MapControls
           onToggleMapType={handleToggleMapType}
           onCenterUserLocation={handleCenterUserLocation}
@@ -271,15 +272,15 @@ function SearchScreenContent() {
         />
       )}
 
-      {/* Bottom action bar */}
-      {!state.isSearchFocused && (
+      {/* Bottom action bar — hidden during boundary drawing */}
+      {!state.isSearchFocused && !showBoundaryDrawer && (
         <SearchBottomBar
           onSaveSearch={() => setShowSaveSheet(true)}
         />
       )}
 
       {/* Loading indicator */}
-      {state.isLoading && (
+      {state.isLoading && !showBoundaryDrawer && (
         <View
           style={{
             position: "absolute",
@@ -292,12 +293,33 @@ function SearchScreenContent() {
       )}
 
       {/* Save search bottom sheet */}
-      <SaveSearchSheet
-        visible={showSaveSheet}
-        onDismiss={() => setShowSaveSheet(false)}
-      />
+      {!showBoundaryDrawer && (
+        <SaveSearchSheet
+          visible={showSaveSheet}
+          onDismiss={() => setShowSaveSheet(false)}
+        />
+      )}
 
-
+      {/* Custom boundary drawer — overlaid on top, main map stays alive underneath */}
+      {showBoundaryDrawer && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 50,
+          }}
+        >
+          <CustomBoundaryView
+            initialPoints={state.customBoundaryPoints}
+            initialRegion={effectiveInitialRegion}
+            onSave={handleBoundarySave}
+            onCancel={handleBoundaryCancel}
+          />
+        </View>
+      )}
     </View>
   );
 }

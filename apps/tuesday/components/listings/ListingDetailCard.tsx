@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { View, Text, useColorScheme } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, Pressable, useColorScheme } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { ListingGallery } from "../ListingGallery";
 import { ListingMarker } from "../search/ListingMarker";
@@ -176,6 +176,8 @@ interface ListingDetailCardProps {
   isNearViewport?: boolean;
   onOpenPhotoViewer?: (startIndex: number) => void;
   onAgentPress?: (uid: string) => void;
+  onAreaPress?: (uid: string, name?: string) => void;
+  onMapPress?: (listing: Listing) => void;
   profileUid?: string;
   foreground: string;
   foregroundMuted: string;
@@ -191,6 +193,8 @@ export function ListingDetailCard({
   isNearViewport = true,
   onOpenPhotoViewer,
   onAgentPress,
+  onAreaPress,
+  onMapPress,
   profileUid,
   foreground,
   foregroundMuted,
@@ -214,37 +218,44 @@ export function ListingDetailCard({
     return { latitude: lat, longitude: lng };
   }, [listing.Latitude, listing.Longitude]);
 
-  const mapHeight = height * 0.3;
-  const galleryHeight = height * 0.3;
-  const infoHeight = height * 0.4;
+  // Gallery needs explicit height for horizontal ScrollView items — measure via onLayout
+  const [galleryHeight, setGalleryHeight] = useState(height * 0.3);
 
   return (
     <View style={{ height, backgroundColor: background }}>
-      {/* Map Snapshot — 30% */}
+      {/* Media section: map + gallery share space equally */}
+      <View style={{ flex: 1, minHeight: height * 0.25 }}>
+      {/* Map Snapshot */}
       {coord && isNearViewport ? (
-        <MapView
-          style={{ height: mapHeight }}
-          initialRegion={{
-            ...coord,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          }}
-          scrollEnabled={false}
-          zoomEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          userInterfaceStyle={scheme === "dark" ? "dark" : "light"}
-          showsPointsOfInterest={false}
-          liteMode
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={() => onMapPress?.(listing)}
         >
-          <Marker coordinate={coord} anchor={{ x: 0.5, y: 1 }}>
-            <ListingMarker listing={listing} />
-          </Marker>
-        </MapView>
+          <MapView
+            style={{ flex: 1 }}
+            pointerEvents="none"
+            initialRegion={{
+              ...coord,
+              latitudeDelta: 0.005,
+              longitudeDelta: 0.005,
+            }}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            userInterfaceStyle={scheme === "dark" ? "dark" : "light"}
+            showsPointsOfInterest={false}
+            liteMode
+          >
+            <Marker coordinate={coord} anchor={{ x: 0.5, y: 1 }}>
+              <ListingMarker listing={listing} />
+            </Marker>
+          </MapView>
+        </Pressable>
       ) : (
         <View
           style={{
-            height: mapHeight,
+            flex: 1,
             backgroundColor: backgroundSecondary,
             alignItems: "center",
             justifyContent: "center",
@@ -262,28 +273,30 @@ export function ListingDetailCard({
         </View>
       )}
 
-      {/* Photo Gallery — 30% */}
-      <ListingGallery
-        listingIndex={listingIndex}
-        photoUrls={photoUrls}
-        height={galleryHeight}
-        statusEmoji={status.emoji}
-        statusText={status.label}
-        statusColor={status.color}
-        isNearViewport={isNearViewport}
-        onOpenViewer={(startIndex) => onOpenPhotoViewer?.(startIndex)}
-      />
-
-      {/* Info — 40% */}
+      {/* Photo Gallery */}
       <View
-        style={{
-          height: infoHeight,
-          backgroundColor: background,
-          justifyContent: "space-between",
-        }}
+        style={{ flex: 1 }}
+        onLayout={(e) => setGalleryHeight(e.nativeEvent.layout.height)}
       >
-        {/* Top section: listing details */}
-        <View style={{ flex: 1, paddingLeft: 12, paddingTop: 16 }}>
+        <ListingGallery
+          listingIndex={listingIndex}
+          photoUrls={photoUrls}
+          height={galleryHeight}
+          statusEmoji={status.emoji}
+          statusText={status.label}
+          statusColor={status.color}
+          isNearViewport={isNearViewport}
+          onOpenViewer={(startIndex) => onOpenPhotoViewer?.(startIndex)}
+          listingType={listing.type}
+          playlistTitle={listing.PlaylistInfo?.playlistTitle}
+        />
+      </View>
+      </View>
+
+      {/* Info section: auto height, capped */}
+      <View style={{ maxHeight: height * 0.5, backgroundColor: background }}>
+        {/* Listing details */}
+        <View style={{ paddingLeft: 12, paddingTop: 16 }}>
           {/* Price row */}
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>
             <Text
@@ -357,17 +370,41 @@ export function ListingDetailCard({
 
           {/* Areas row */}
           <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
-            {cityState ? (
+            {cityState && listing.CityUID ? (
+              <Text
+                numberOfLines={1}
+                onPress={() => onAreaPress?.(listing.CityUID!, cityState)}
+                style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}
+              >
+                {cityState}
+              </Text>
+            ) : cityState ? (
               <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}>
                 {cityState}
               </Text>
             ) : null}
-            {listing.PostalCode ? (
+            {listing.PostalCode && listing.PostalCodeUID ? (
+              <Text
+                numberOfLines={1}
+                onPress={() => onAreaPress?.(listing.PostalCodeUID!, listing.PostalCode)}
+                style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}
+              >
+                {listing.PostalCode}
+              </Text>
+            ) : listing.PostalCode ? (
               <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}>
                 {listing.PostalCode}
               </Text>
             ) : null}
-            {listing.CountyOrParish ? (
+            {listing.CountyOrParish && listing.CountyUID ? (
+              <Text
+                numberOfLines={1}
+                onPress={() => onAreaPress?.(listing.CountyUID!, listing.CountyOrParish)}
+                style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}
+              >
+                {listing.CountyOrParish}
+              </Text>
+            ) : listing.CountyOrParish ? (
               <Text numberOfLines={1} style={{ fontFamily: "GeistSans-Medium", fontSize: 17, color: foreground, textDecorationLine: "underline" }}>
                 {listing.CountyOrParish}
               </Text>

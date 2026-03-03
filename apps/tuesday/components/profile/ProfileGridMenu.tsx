@@ -5,10 +5,8 @@ import { useThemeColors } from "../../hooks/useThemeColors";
 import type { ProfileSortOrder } from "../../types/profile";
 
 const SORT_OPTIONS: { value: ProfileSortOrder; label: string }[] = [
-  { value: "recent", label: "Recent" },
-  { value: "oldest", label: "Oldest" },
-  { value: "highest", label: "Highest Price" },
-  { value: "lowest", label: "Lowest Price" },
+  { value: "recent", label: "Most recent" },
+  { value: "highest", label: "Highest price" },
 ];
 
 interface ProfileGridMenuProps {

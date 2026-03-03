@@ -20,8 +20,10 @@ import {
   useProfileListings,
   useFollowMutation,
   useTrackProfileView,
+  useSwitchMLSMutation,
 } from "../../../hooks/use-profile";
-import { isVerified as checkVerified, type ProfileSortOrder } from "../../../types/profile";
+import { useUnreadCount } from "../../../hooks/use-notifications";
+import { isVerified as checkVerified, isSuperAdmin as checkSuperAdmin, type ProfileSortOrder } from "../../../types/profile";
 import type { Listing } from "../../../types/listing";
 import { isNonAgentType, getOfficeBranding } from "../../../lib/profile/utils";
 import { ProfileAvatar } from "../../../components/profile/ProfileAvatar";
@@ -35,6 +37,7 @@ import { ListingsGrid } from "../../../components/listings/ListingsGrid";
 import { ListingViewer } from "../../../components/listings/ListingViewer";
 import { SettingsSheet } from "../../../components/profile/SettingsSheet";
 import { SocialLinksSheet } from "../../../components/profile/SocialLinksSheet";
+import { useDeveloperMode } from "../../../hooks/use-developer-mode";
 
 // Background images for non-agent profiles
 const BACKGROUNDS: Record<string, ReturnType<typeof require>> = {
@@ -49,10 +52,20 @@ export default function ProfileScreen() {
   const t = useThemeColors();
   const router = useRouter();
   const params = useLocalSearchParams<{ uid?: string; name?: string }>();
-  const { profile: authProfile, logout } = useAuth();
+  const { profile: authProfile, logout, setAuth } = useAuth();
+
+  // Developer mode (superadmin only)
+  const devMode = useDeveloperMode();
+  const switchMLSMutation = useSwitchMLSMutation();
 
   // Determine whose profile we're viewing
   const isOwnProfile = !params.uid || params.uid === authProfile?.UID;
+
+  // Unread notification count (own profile only)
+  const { data: unreadCount } = useUnreadCount(
+    authProfile?.UID ?? "",
+    isOwnProfile,
+  );
   const targetUid = isOwnProfile ? authProfile?.UID ?? "" : params.uid ?? "";
 
   // Fetch profile data
@@ -211,8 +224,23 @@ export default function ProfileScreen() {
 
       {isOwnProfile && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-          <Pressable hitSlop={8} onPress={() => router.push("/work/actions" as any)}>
-            <Tray size={22} color={t.foregroundMuted} weight="regular" />
+          <Pressable hitSlop={8} onPress={() => router.push("/profile/inbox" as any)}>
+            <View>
+              <Tray size={22} color={t.foregroundMuted} weight="regular" />
+              {(unreadCount ?? 0) > 0 && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -1,
+                    right: -1,
+                    width: 7,
+                    height: 7,
+                    borderRadius: 3.5,
+                    backgroundColor: "#EF4444",
+                  }}
+                />
+              )}
+            </View>
           </Pressable>
           <Pressable hitSlop={8} onPress={() => setSettingsVisible(true)}>
             <List size={22} color={t.foregroundMuted} weight="regular" />
@@ -321,7 +349,6 @@ export default function ProfileScreen() {
           onSharePress={handleSharePress}
         />
 
-        {/* Listings section */}
         <ProfileGridMenu
           sortOrder={sortOrder}
           onSortChange={setSortOrder}
@@ -362,10 +389,32 @@ export default function ProfileScreen() {
         onYourLikes={() => {
           // TODO: Navigate to Your Likes
         }}
-        onLogout={logout}
-        onDeleteAccount={() => {
+        onLogout={async () => {
+          await devMode.reset();
+          logout();
+        }}
+        onDeleteAccount={async () => {
+          await devMode.reset();
           // TODO: Delete account API call then logout
           logout();
+        }}
+        isSuperAdmin={profile ? checkSuperAdmin(profile) : false}
+        developerMode={devMode.enabled}
+        onToggleDeveloperMode={devMode.toggle}
+        selectedMLS={devMode.selectedMLS}
+        isSwitchingMLS={switchMLSMutation.isPending}
+        onSwitchMLS={(mlsType) => {
+          if (!authProfile?.UID) return;
+          devMode.setMLS(mlsType);
+          switchMLSMutation.mutate(
+            { profileUid: authProfile.UID, mlsType },
+            {
+              onSuccess: async (data) => {
+                await setAuth(data.token, data.message);
+                setSettingsVisible(false);
+              },
+            },
+          );
         }}
       />
 
@@ -398,13 +447,14 @@ export default function ProfileScreen() {
               {renderMainInfo()}
               {renderNameSection()}
 
-              <ProfileBio bio={profile?.MemberBio} isLoading={isProfileLoading} />
+              <ProfileBio bio={profile?.MemberBio} isLoading={isProfileLoading} isNonAgent />
 
               <ProfileLinks
                 phone={profile?.MemberMobilePhone}
                 email={profile?.MemberEmail}
                 socialLinks={profile?.MemberSocialMedia}
                 isLoading={isProfileLoading}
+                isNonAgent
                 onSocialLinksTap={() => setSocialLinksVisible(true)}
               />
 
@@ -419,6 +469,40 @@ export default function ProfileScreen() {
             </View>
           </SafeAreaView>
         </ImageBackground>
+
+        <SettingsSheet
+          visible={settingsVisible}
+          onClose={() => setSettingsVisible(false)}
+          onYourLikes={() => {
+            // TODO: Navigate to Your Likes
+          }}
+          onLogout={async () => {
+            await devMode.reset();
+            logout();
+          }}
+          onDeleteAccount={async () => {
+            await devMode.reset();
+            logout();
+          }}
+          isSuperAdmin={profile ? checkSuperAdmin(profile) : false}
+          developerMode={devMode.enabled}
+          onToggleDeveloperMode={devMode.toggle}
+          selectedMLS={devMode.selectedMLS}
+          isSwitchingMLS={switchMLSMutation.isPending}
+          onSwitchMLS={(mlsType) => {
+            if (!authProfile?.UID) return;
+            devMode.setMLS(mlsType);
+            switchMLSMutation.mutate(
+              { profileUid: authProfile.UID, mlsType },
+              {
+                onSuccess: async (data) => {
+                  await setAuth(data.token, data.message);
+                  setSettingsVisible(false);
+                },
+              },
+            );
+          }}
+        />
 
         {profile?.MemberSocialMedia && profile.MemberSocialMedia.length > 0 && (
           <SocialLinksSheet

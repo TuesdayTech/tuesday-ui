@@ -39,6 +39,29 @@ export default function FeedScreen() {
     router.push(`/agent/${uid}`);
   }, [router]);
 
+  const handleAreaPress = useCallback((areaUid: string, areaName?: string) => {
+    router.push({
+      pathname: "/area/[uid]",
+      params: { uid: areaUid, name: areaName },
+    });
+  }, [router]);
+
+  const handleMapPress = useCallback((listing: { Latitude?: string; Longitude?: string; StandardStatus?: string; RoundedPrice?: string; UnparsedAddress?: string }) => {
+    const lat = parseFloat(listing.Latitude ?? "");
+    const lng = parseFloat(listing.Longitude ?? "");
+    if (isNaN(lat) || isNaN(lng)) return;
+    router.push({
+      pathname: "/listing-map",
+      params: {
+        lat: String(lat),
+        lng: String(lng),
+        standardStatus: listing.StandardStatus ?? "Active",
+        roundedPrice: listing.RoundedPrice ?? "",
+        address: listing.UnparsedAddress ?? "",
+      },
+    });
+  }, [router]);
+
   const {
     data,
     isLoading,
@@ -195,6 +218,8 @@ export default function FeedScreen() {
                 })
               }
               onAgentPress={handleAgentPress}
+              onAreaPress={handleAreaPress}
+              onMapPress={handleMapPress}
               profileUid={profileUid}
               foreground={t.foreground}
               foregroundMuted={t.foregroundMuted}

@@ -20,7 +20,7 @@ export function ProfileButtons({
   onSharePress,
 }: ProfileButtonsProps) {
   const t = useThemeColors();
-  const accent = "#0A84FF";
+  const accent = t.foreground;
 
   return (
     <View
@@ -79,7 +79,7 @@ export function ProfileButtons({
             style={{
               fontFamily: "GeistSans-SemiBold",
               fontSize: 13,
-              color: isFollowing ? accent : "#FFFFFF",
+              color: isFollowing ? accent : t.background,
             }}
           >
             {isFollowing ? "Following" : "Follow"}
@@ -90,7 +90,7 @@ export function ProfileButtons({
       <Pressable
         onPress={onSharePress}
         style={{
-          paddingHorizontal: 16,
+          flex: 1,
           height: 32,
           borderRadius: 8,
           borderWidth: 1.5,

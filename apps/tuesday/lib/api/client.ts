@@ -22,6 +22,30 @@ interface ApiEnvelope {
   [key: string]: unknown;
 }
 
+/** Truncate API response for readable dev logs. */
+function summarizeResponse(json: unknown): unknown {
+  if (Array.isArray(json)) {
+    return `[Array(${json.length})]`;
+  }
+  if (json && typeof json === "object") {
+    const obj = json as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value)) {
+        out[key] = `[Array(${value.length})]`;
+      } else if (value && typeof value === "object") {
+        out[key] = "{...}";
+      } else if (typeof value === "string" && value.length > 80) {
+        out[key] = value.slice(0, 80) + "...";
+      } else {
+        out[key] = value;
+      }
+    }
+    return out;
+  }
+  return json;
+}
+
 async function request<T>(
   path: string,
   options: RequestOptions = {},
@@ -61,7 +85,11 @@ async function request<T>(
 
   // Abort controller for timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeout);
 
   // Merge external signal with timeout controller
   // (AbortSignal.any is not available in Hermes)
@@ -85,15 +113,19 @@ async function request<T>(
     });
   } catch (error) {
     clearTimeout(timeoutId);
+    if ((error as Error).name === "AbortError") {
+      if (timedOut) {
+        if (__DEV__) console.warn(`[API] TIMEOUT ${finalUrl}`);
+        throw new ApiError("timeout", "Request timed out");
+      }
+      throw new ApiError("aborted", "Request aborted");
+    }
     if (__DEV__) {
       console.error(`[API] FETCH ERROR:`, {
         name: (error as Error).name,
         message: (error as Error).message,
         url: finalUrl,
       });
-    }
-    if ((error as Error).name === "AbortError") {
-      throw new ApiError("timeout", "Request timed out");
     }
     throw new ApiError("network_error", "Network request failed");
   } finally {
@@ -109,7 +141,8 @@ async function request<T>(
   }
 
   if (__DEV__) {
-    console.log(`[API] ${response.status} ${url.pathname}`, json);
+    const summary = summarizeResponse(json);
+    console.log(`[API] ${response.status} ${url.pathname}`, summary);
   }
 
   // HTTP errors
