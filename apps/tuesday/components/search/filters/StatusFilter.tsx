@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, Modal, ScrollView } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Check } from "phosphor-react-native";
 import { useThemeColors } from "../../../hooks/useThemeColors";
 import {
@@ -41,9 +41,15 @@ export function StatusFilter({
   const preset = getPreset(selectedStatuses);
 
   const handlePreset = (p: StatusPreset) => {
-    if (p === "active") onChange([...DEFAULT_STATUSES]);
-    else if (p === "closed") onChange([...CLOSED_STATUSES]);
-    else setShowCustom(true);
+    if (p === "active") {
+      onChange([...DEFAULT_STATUSES]);
+      setShowCustom(false);
+    } else if (p === "closed") {
+      onChange([...CLOSED_STATUSES]);
+      setShowCustom(false);
+    } else {
+      setShowCustom(true);
+    }
   };
 
   const toggleStatus = (status: string) => {
@@ -70,8 +76,8 @@ export function StatusFilter({
 
       {/* Segmented control */}
       <View
-        className="flex-row"
         style={{
+          flexDirection: "row",
           backgroundColor: t.backgroundSecondary,
           borderRadius: 10,
           borderWidth: 1,
@@ -80,7 +86,8 @@ export function StatusFilter({
         }}
       >
         {(["active", "closed", "custom"] as StatusPreset[]).map((p) => {
-          const isActive = preset === p;
+          const isActive =
+            p === "custom" ? showCustom : !showCustom && preset === p;
           return (
             <Pressable
               key={p}
@@ -109,118 +116,57 @@ export function StatusFilter({
         })}
       </View>
 
-      {/* Custom status modal */}
-      <Modal visible={showCustom} animationType="slide" transparent>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "flex-end",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: t.background,
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              maxHeight: 500,
-              paddingBottom: 40,
-            }}
-          >
-            {/* Handle */}
-            <View
-              style={{
-                alignSelf: "center",
-                width: 36,
-                height: 5,
-                borderRadius: 2.5,
-                backgroundColor: t.foregroundSubtle,
-                marginTop: 10,
-                marginBottom: 16,
-              }}
-            />
-            <Text
-              style={{
-                color: t.foreground,
-                fontFamily: "GeistSans-SemiBold",
-                fontSize: 18,
-                paddingHorizontal: 20,
-                marginBottom: 12,
-              }}
-            >
-              Select statuses
-            </Text>
-            <ScrollView style={{ paddingHorizontal: 20 }}>
-              {ALL_STATUSES.map((status) => {
-                const isSelected = selectedStatuses.includes(status);
-                const emoji = STATUS_EMOJI[status] ?? "";
-                return (
-                  <Pressable
-                    key={status}
-                    onPress={() => toggleStatus(status)}
-                    className="flex-row items-center"
-                    style={{
-                      paddingVertical: 14,
-                      borderBottomWidth: 0.5,
-                      borderBottomColor: t.border,
-                      gap: 12,
-                    }}
-                  >
-                    <Text style={{ fontSize: 18 }}>{emoji}</Text>
-                    <Text
-                      style={{
-                        flex: 1,
-                        color: t.foreground,
-                        fontFamily: "GeistSans-Medium",
-                        fontSize: 15,
-                      }}
-                    >
-                      {status}
-                    </Text>
-                    <View
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        borderWidth: 2,
-                        borderColor: isSelected ? "#0A84FF" : t.border,
-                        backgroundColor: isSelected ? "#0A84FF" : "transparent",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {isSelected && (
-                        <Check size={14} color="#FFFFFF" weight="bold" />
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Pressable
-              onPress={() => setShowCustom(false)}
-              style={{
-                marginHorizontal: 20,
-                marginTop: 16,
-                height: 50,
-                borderRadius: 12,
-                backgroundColor: "#0A84FF",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text
+      {/* Inline custom status picker */}
+      {showCustom && (
+        <View style={{ marginTop: 12 }}>
+          {ALL_STATUSES.map((status) => {
+            const isSelected = selectedStatuses.includes(status);
+            const emoji = STATUS_EMOJI[status] ?? "";
+            return (
+              <Pressable
+                key={status}
+                onPress={() => toggleStatus(status)}
                 style={{
-                  color: "#FFFFFF",
-                  fontFamily: "GeistSans-SemiBold",
-                  fontSize: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 12,
+                  borderBottomWidth: 0.5,
+                  borderBottomColor: t.border,
+                  gap: 12,
                 }}
               >
-                Done
-              </Text>
-            </Pressable>
-          </View>
+                <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                <Text
+                  style={{
+                    flex: 1,
+                    color: t.foreground,
+                    fontFamily: "GeistSans-Medium",
+                    fontSize: 15,
+                  }}
+                >
+                  {status}
+                </Text>
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    borderWidth: 2,
+                    borderColor: isSelected ? "#0A84FF" : t.border,
+                    backgroundColor: isSelected ? "#0A84FF" : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {isSelected && (
+                    <Check size={14} color="#FFFFFF" weight="bold" />
+                  )}
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
-      </Modal>
+      )}
     </View>
   );
 }

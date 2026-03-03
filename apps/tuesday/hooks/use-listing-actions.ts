@@ -420,7 +420,7 @@ export function useListingLikes(listingUid: string, profileUid: string, enabled 
     queryFn: () =>
       api.request<LikeProfile[]>("likes/all", {
         query: { profileUID: profileUid, listingUID: listingUid },
-        responseKey: "message",
+        responseKey: null,
       }),
     enabled: enabled && !!listingUid && !!profileUid,
   });
