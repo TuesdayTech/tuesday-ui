@@ -42,6 +42,7 @@ const BACKGROUNDS: Record<string, ReturnType<typeof require>> = {
   RLBackground: require("../../assets/profile/backgrounds/RLBackground.png"),
   NSBackground: require("../../assets/profile/backgrounds/NSBackground.png"),
   CRBackground: require("../../assets/profile/backgrounds/CRBackground.png"),
+  DOBackground: require("../../assets/profile/backgrounds/DOBackground.png"),
 };
 
 export default function AgentProfileScreen() {
@@ -280,6 +281,17 @@ export default function AgentProfileScreen() {
     },
     [router],
   );
+
+  if (!uid) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.background }} edges={["top"]}>
+        {renderNavBar()}
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: t.foregroundMuted, fontFamily: "GeistSans" }}>Profile not found</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // --- Agent profile (scrollable) ---
   if (!isNonAgent) {
