@@ -4,9 +4,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const DEV_MODE_KEY = "developerMode";
 const MLS_TYPE_KEY = "selectedMLSType";
 
-export type MLSType = "All" | "Northstar" | "RealMLS" | "CRMLS" | "MIBOR";
+export type MLSType = "All" | "Northstar" | "RealMLS" | "CRMLS" | "MIBOR" | "Doorify";
 
-export const MLS_TYPES: MLSType[] = ["All", "Northstar", "RealMLS", "CRMLS", "MIBOR"];
+export const MLS_TYPES: MLSType[] = ["All", "Northstar", "RealMLS", "CRMLS", "MIBOR", "Doorify"];
 
 export function useDeveloperMode() {
   const [enabled, setEnabled] = useState(false);
